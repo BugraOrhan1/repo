@@ -718,10 +718,19 @@ function App() {
 
           <div className="hero-side">
             <div className="hero-tiles">
-              <div className="tile"><span className="tile-value">{user?.credits ?? 0}</span><span className="tile-label">Available credits</span></div>
-              <div className="tile"><span className="tile-value">{files.length}</span><span className="tile-label">My files</span></div>
-              <div className="tile"><span className="tile-value">{unreadCount}</span><span className="tile-label">Unread alerts</span></div>
-              <div className="tile"><span className="tile-value">{user?.is_admin ? 'Yes' : 'No'}</span><span className="tile-label">Admin access</span></div>
+              {user?.is_admin ? (
+                <>
+                  <div className="tile"><span className="tile-value">{user?.credits ?? 0}</span><span className="tile-label">Available credits</span></div>
+                  <div className="tile"><span className="tile-value">{files.length}</span><span className="tile-label">My files</span></div>
+                  <div className="tile"><span className="tile-value">{unreadCount}</span><span className="tile-label">Unread alerts</span></div>
+                  <div className="tile"><span className="tile-value">{user?.is_admin ? 'Yes' : 'No'}</span><span className="tile-label">Admin access</span></div>
+                </>
+              ) : (
+                <>
+                  <div className="tile"><span className="tile-value">{user?.credits ?? 0}</span><span className="tile-label">Credits</span></div>
+                  <div className="tile"><span className="tile-value">{files.length}</span><span className="tile-label">Files</span></div>
+                </>
+              )}
             </div>
 
             <div className="card">
