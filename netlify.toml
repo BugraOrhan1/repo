@@ -1,0 +1,18 @@
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "build"
+
+[build.environment]
+  CI = "false"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://ecu-dashboard-1.preview.emergentagent.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
