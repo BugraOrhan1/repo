@@ -98,6 +98,10 @@ class PurchaseIn(BaseModel):
     packageId: str
 
 
+class ApprovalIn(BaseModel):
+    status: str  # approved | rejected
+
+
 CREDIT_PACKAGES = {
     'pkg_5': {'credits': 5, 'price': 50},
     'pkg_10': {'credits': 10, 'price': 95},
@@ -261,6 +265,7 @@ def public_user(u: dict) -> dict:
         'is_admin': u.get('is_admin', False),
         'language': u.get('language', 'en'),
         'createdAt': u.get('createdAt', ''),
+        'approval_status': u.get('approval_status', 'pending'),
     }
 
 
@@ -362,6 +367,7 @@ async def register(data: RegisterIn):
         'is_admin': is_admin,
         'language': 'en',
         'createdAt': now_iso(),
+        'approval_status': 'approved' if is_admin else 'pending',
     }
     await db.users.insert_one(user)
     token = create_token(user['_id'])
@@ -375,8 +381,9 @@ async def login(data: LoginIn):
         raise HTTPException(status_code=401, detail='Invalid email or password')
     # Auto-promote admin email
     if user['email'] == ADMIN_EMAIL and not user.get('is_admin'):
-        await db.users.update_one({'_id': user['_id']}, {'$set': {'is_admin': True}})
+        await db.users.update_one({'_id': user['_id']}, {'$set': {'is_admin': True, 'approval_status': 'approved'}})
         user['is_admin'] = True
+        user['approval_status'] = 'approved'
     token = create_token(user['_id'])
     return {'token': token, 'user': public_user(user)}
 
@@ -435,6 +442,10 @@ async def upload_file(
     timeFrame: str = Form(''),
     user=Depends(get_current_user),
 ):
+    # Only approved users can upload files
+    if user.get('approval_status', 'pending') != 'approved':
+        raise HTTPException(status_code=403, detail='Account not approved by admin')
+
     if user.get('credits', 0) < credits:
         raise HTTPException(status_code=400, detail='Not enough credits')
 
@@ -679,6 +690,19 @@ async def admin_adjust_credits(user_id: str, data: CreditsAdjustIn, admin=Depend
     await add_notification(user_id, 'credits_changed',
                           f"Credits {'added' if data.amount > 0 else 'removed'}",
                           f"{data.amount:+d} credits by admin")
+    new_user = await db.users.find_one({'_id': user_id})
+    return public_user(new_user)
+
+
+@api_router.patch("/admin/users/{user_id}/approval")
+async def admin_set_approval(user_id: str, data: ApprovalIn, admin=Depends(require_admin)):
+    user = await db.users.find_one({'_id': user_id})
+    if not user:
+        raise HTTPException(status_code=404)
+    if data.status not in ('approved', 'rejected'):
+        raise HTTPException(status_code=400, detail='Invalid status')
+    await db.users.update_one({'_id': user_id}, {'$set': {'approval_status': data.status}})
+    await add_notification(user_id, 'account_' + data.status, 'Account ' + data.status.capitalize(), f"Your account was {data.status} by admin")
     new_user = await db.users.find_one({'_id': user_id})
     return public_user(new_user)
 

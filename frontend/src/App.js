@@ -111,6 +111,7 @@ function App() {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
   const [vehicleLabel, setVehicleLabel] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const selectedTuning = useMemo(
     () => tuningOptions.find((item) => item.id === vehicleForm.tuningType),
@@ -484,6 +485,16 @@ function App() {
     }
   }
 
+  async function setUserApproval(userId, status) {
+    try {
+      await apiFetch(`/api/admin/users/${userId}/approval`, { token, method: 'PATCH', body: { status } });
+      await refreshCurrentView();
+      setToast('User approval updated.');
+    } catch (error) {
+      setToast(error.message);
+    }
+  }
+
   async function fetchCascade(nextForm) {
     const merged = { ...vehicleForm, ...nextForm };
     setVehicleForm(merged);
@@ -730,20 +741,32 @@ function App() {
           </div>
         </section>
 
-        <nav className="nav-bar">
-          {[
-            ['overview', 'Overview'],
-            ['upload', 'Upload'],
-            ['files', 'Files'],
-            ['credits', 'Credits'],
-            ['notifications', `Notifications (${unreadCount})`],
-            ...(user?.is_admin ? [['admin', 'Admin']] : []),
-          ].map(([key, label]) => (
-            <button key={key} className={classNames('nav-item', tab === key && 'active')} onClick={() => setTab(key)}>
-              {label}
-            </button>
-          ))}
-        </nav>
+              <nav className="nav-bar">
+                {(() => {
+                  const basic = [
+                    ['overview', 'Overview'],
+                    ['upload', 'Upload'],
+                    ['files', 'Files'],
+                  ];
+                  const advanced = [
+                    ['credits', 'Credits'],
+                    ['notifications', `Notifications (${unreadCount})`],
+                    ...(user?.is_admin ? [['admin', 'Admin']] : []),
+                  ];
+                  const items = showAdvanced ? [...basic, ...advanced] : basic;
+                  return items.map(([key, label]) => (
+                    <button key={key} className={classNames('nav-item', tab === key && 'active')} onClick={() => setTab(key)}>
+                      {label}
+                    </button>
+                  ));
+                })()}
+
+                <div style={{ marginLeft: 'auto' }}>
+                  <button className="button button-secondary" onClick={() => setShowAdvanced((v) => !v)}>
+                    {showAdvanced ? 'Hide advanced' : 'Show advanced'}
+                  </button>
+                </div>
+              </nav>
 
         <div className="layout">
           <div className="stack">
@@ -906,9 +929,15 @@ function App() {
                     <span className="pill ok">Credits: {uploadCredits}</span>
                   </div>
 
-                  <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
-                    {uploading ? 'Uploading...' : 'Submit request'}
-                  </button>
+                  {user?.approval_status !== 'approved' ? (
+                    <div className="empty-state">
+                      Je account is nog niet goedgekeurd door een admin. Uploads en betalingen zijn geblokkeerd totdat je account is goedgekeurd.
+                    </div>
+                  ) : (
+                    <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
+                      {uploading ? 'Uploading...' : 'Submit request'}
+                    </button>
+                  )}
                 </form>
               </section>
             ) : null}
@@ -1067,6 +1096,17 @@ function App() {
                         <div className="pill-row">
                           <button className="pill ok" onClick={() => adjustCredits(item.id, 5)}>+5</button>
                           <button className="pill danger" onClick={() => adjustCredits(item.id, -5)}>-5</button>
+                        </div>
+                      </div>
+                      <div style={{ marginTop: 12 }}>
+                        <div className="pill-row">
+                          <span className="pill">Status: {item.approval_status || 'pending'}</span>
+                          {item.approval_status !== 'approved' && (
+                            <button className="button button-primary" onClick={() => setUserApproval(item.id, 'approved')}>Approve</button>
+                          )}
+                          {item.approval_status !== 'rejected' && (
+                            <button className="button button-secondary" onClick={() => setUserApproval(item.id, 'rejected')}>Reject</button>
+                          )}
                         </div>
                       </div>
                     </div>
