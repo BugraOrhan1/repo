@@ -724,6 +724,7 @@ def get_ecus(brand: str, model: str, generation: str, engine: str):
         name_counts[v[3]] = name_counts.get(v[3], 0) + 1
     for v in matching:
         name = f"{v[3]} {v[4]}hp" if name_counts[v[3]] > 1 else v[3]
-        if name == engine:
+        # Match either exact name OR raw engine name with hp suffix
+        if name == engine or v[3] == engine:
             return v[7].split('|') if v[7] else []
     return []
