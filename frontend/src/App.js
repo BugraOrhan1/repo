@@ -967,9 +967,11 @@ function App() {
                         Je account is nog niet goedgekeurd door een admin. Uploads en betalingen zijn geblokkeerd totdat je account is goedgekeurd.
                       </div>
                     ) : (
-                      <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
-                        {uploading ? 'Uploading...' : 'Submit request'}
-                      </button>
+                      <div className="form-actions">
+                        <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
+                          {uploading ? 'Uploading...' : 'Submit request'}
+                        </button>
+                      </div>
                     )}
                   </form>
                 ) : (
@@ -1073,9 +1075,11 @@ function App() {
                         Je account is nog niet goedgekeurd door een admin. Uploads en betalingen zijn geblokkeerd totdat je account is goedgekeurd.
                       </div>
                     ) : (
-                      <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
-                        {uploading ? 'Uploading...' : 'Submit request'}
-                      </button>
+                      <div className="form-actions">
+                        <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
+                          {uploading ? 'Uploading...' : 'Submit request'}
+                        </button>
+                      </div>
                     )}
                   </form>
                 )}

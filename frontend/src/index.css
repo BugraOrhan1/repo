@@ -274,6 +274,25 @@ a {
   gap: 14px;
 }
 
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.form-actions .button-primary {
+  min-width: 160px;
+}
+
+@media (max-width: 640px) {
+  .form-actions {
+    justify-content: stretch;
+  }
+  .form-actions .button-primary {
+    width: 100%;
+  }
+}
+
 .grid.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
