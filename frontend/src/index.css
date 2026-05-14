@@ -181,6 +181,23 @@ a {
   border: 1px solid var(--line);
 }
 
+.tile-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tile-icon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  color: var(--accent);
+}
+
 .tile-value {
   display: block;
   font-size: 26px;
@@ -482,6 +499,24 @@ a {
     grid-template-columns: 1fr;
   }
 
+
+  @media (max-width: 880px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+    .hero-side {
+      order: 2;
+    }
+    .hero-panel {
+      order: 1;
+    }
+    .hero-tiles {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .hero-copy {
+      max-width: 100%;
+    }
+  }
   .grid.two,
   .grid.three {
     grid-template-columns: 1fr;

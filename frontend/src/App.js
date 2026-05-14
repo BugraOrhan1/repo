@@ -720,15 +720,79 @@ function App() {
             <div className="hero-tiles">
               {user?.is_admin ? (
                 <>
-                  <div className="tile"><span className="tile-value">{user?.credits ?? 0}</span><span className="tile-label">Available credits</span></div>
-                  <div className="tile"><span className="tile-value">{files.length}</span><span className="tile-label">My files</span></div>
-                  <div className="tile"><span className="tile-value">{unreadCount}</span><span className="tile-label">Unread alerts</span></div>
-                  <div className="tile"><span className="tile-value">{user?.is_admin ? 'Yes' : 'No'}</span><span className="tile-label">Admin access</span></div>
+                  <div className="tile">
+                    <div className="tile-content">
+                      <span className="tile-icon" aria-hidden>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 00-7 7v3.586l-1.707 1.707A1 1 0 004 16h16a1 1 0 00.707-1.707L19 12.586V9a7 7 0 00-7-7z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </span>
+                      <div>
+                        <span className="tile-value">{user?.credits ?? 0}</span>
+                        <span className="tile-label">Available credits</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="tile">
+                    <div className="tile-content">
+                      <span className="tile-icon" aria-hidden>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7h18M6 7v11a2 2 0 002 2h8a2 2 0 002-2V7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </span>
+                      <div>
+                        <span className="tile-value">{files.length}</span>
+                        <span className="tile-label">My files</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="tile">
+                    <div className="tile-content">
+                      <span className="tile-icon" aria-hidden>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 8a6 6 0 10-12 0v3l-2 2v1h16v-1l-2-2V8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </span>
+                      <div>
+                        <span className="tile-value">{unreadCount}</span>
+                        <span className="tile-label">Unread alerts</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="tile">
+                    <div className="tile-content">
+                      <span className="tile-icon" aria-hidden>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5l2-5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </span>
+                      <div>
+                        <span className="tile-value">{user?.is_admin ? 'Yes' : 'No'}</span>
+                        <span className="tile-label">Admin access</span>
+                      </div>
+                    </div>
+                  </div>
                 </>
               ) : (
                 <>
-                  <div className="tile"><span className="tile-value">{user?.credits ?? 0}</span><span className="tile-label">Credits</span></div>
-                  <div className="tile"><span className="tile-value">{files.length}</span><span className="tile-label">Files</span></div>
+                  <div className="tile">
+                    <div className="tile-content">
+                      <span className="tile-icon" aria-hidden>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 00-7 7v3.586l-1.707 1.707A1 1 0 004 16h16a1 1 0 00.707-1.707L19 12.586V9a7 7 0 00-7-7z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </span>
+                      <div>
+                        <span className="tile-value">{user?.credits ?? 0}</span>
+                        <span className="tile-label">Credits</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="tile">
+                    <div className="tile-content">
+                      <span className="tile-icon" aria-hidden>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7h18M6 7v11a2 2 0 002 2h8a2 2 0 002-2V7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </span>
+                      <div>
+                        <span className="tile-value">{files.length}</span>
+                        <span className="tile-label">Files</span>
+                      </div>
+                    </div>
+                  </div>
                 </>
               )}
             </div>
