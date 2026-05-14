@@ -727,15 +727,13 @@ function App() {
             <div className="card">
               <div className="card-header" style={{ marginBottom: 12 }}>
                 <div>
-                  <h2 className="card-title">Session</h2>
+                  <h2 className="card-title">{(user?.firstName || '') + ' ' + (user?.lastName || '')}</h2>
                   <p className="card-subtitle">{user?.email}</p>
                 </div>
                 <button className="button button-secondary" onClick={handleLogout}>Logout</button>
               </div>
               <div className="pill-row">
-                <span className="pill ok">{user?.firstName || 'User'} {user?.lastName || ''}</span>
-                <span className="pill">Language: {user?.language || 'en'}</span>
-                <span className="pill">Joined {formatDate(user?.createdAt)}</span>
+                <span className="pill ok">{user?.credits ?? 0} credits</span>
               </div>
             </div>
           </div>
@@ -761,11 +759,13 @@ function App() {
                   ));
                 })()}
 
-                <div style={{ marginLeft: 'auto' }}>
-                  <button className="button button-secondary" onClick={() => setShowAdvanced((v) => !v)}>
-                    {showAdvanced ? 'Hide advanced' : 'Show advanced'}
-                  </button>
-                </div>
+                {user?.is_admin ? (
+                  <div style={{ marginLeft: 'auto' }}>
+                    <button className="button button-secondary" onClick={() => setShowAdvanced((v) => !v)}>
+                      {showAdvanced ? 'Hide advanced' : 'Show advanced'}
+                    </button>
+                  </div>
+                ) : null}
               </nav>
 
         <div className="layout">
@@ -834,111 +834,178 @@ function App() {
                   <span className="pill ok">{uploadCredits} credits</span>
                 </div>
 
-                <form className="grid" onSubmit={handleUpload}>
-                  <div className="field">
-                    <label>Original file</label>
-                    <input className="input" type="file" onChange={(event) => setUploadFile(event.target.files?.[0] || null)} />
-                  </div>
+                {(!user?.is_admin && !showAdvanced) ? (
+                  <form className="grid" onSubmit={handleUpload}>
+                    <div className="field">
+                      <label>Original file</label>
+                      <input className="input" type="file" onChange={(event) => setUploadFile(event.target.files?.[0] || null)} />
+                    </div>
 
-                  <div className="grid two">
-                    <div className="field">
-                      <label>Brand</label>
-                      <select className="select" value={vehicleForm.brand} onChange={(event) => fetchCascade({ brand: event.target.value, model: '', generation: '', engine: '', ecu: '' })}>
-                        <option value="">Select brand</option>
-                        {brandOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                      </select>
+                    <div className="grid two">
+                      <div className="field">
+                        <label>Brand</label>
+                        <select className="select" value={vehicleForm.brand} onChange={(event) => fetchCascade({ brand: event.target.value, model: '', generation: '', engine: '', ecu: '' })}>
+                          <option value="">Select brand</option>
+                          {brandOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Model</label>
+                        <select className="select" value={vehicleForm.model} onChange={(event) => fetchCascade({ model: event.target.value, generation: '', engine: '', ecu: '' })} disabled={!modelOptions.length}>
+                          <option value="">Select model</option>
+                          {modelOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Generation</label>
+                        <select className="select" value={vehicleForm.generation} onChange={(event) => fetchCascade({ generation: event.target.value, engine: '', ecu: '' })} disabled={!generationOptions.length}>
+                          <option value="">Select generation</option>
+                          {generationOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Engine</label>
+                        <select className="select" value={vehicleForm.engine} onChange={(event) => fetchCascade({ engine: event.target.value, ecu: '' })} disabled={!engineOptions.length}>
+                          <option value="">Select engine</option>
+                          {engineOptions.map((item) => <option key={item.name || item} value={item.name || item}>{item.name || item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>ECU</label>
+                        <select className="select" value={vehicleForm.ecu || ecuOptions[0] || ''} onChange={(event) => setVehicleForm({ ...vehicleForm, ecu: event.target.value })} disabled={!ecuOptions.length}>
+                          <option value="">Select ECU</option>
+                          {ecuOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
                     </div>
-                    <div className="field">
-                      <label>Model</label>
-                      <select className="select" value={vehicleForm.model} onChange={(event) => fetchCascade({ model: event.target.value, generation: '', engine: '', ecu: '' })} disabled={!modelOptions.length}>
-                        <option value="">Select model</option>
-                        {modelOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Generation</label>
-                      <select className="select" value={vehicleForm.generation} onChange={(event) => fetchCascade({ generation: event.target.value, engine: '', ecu: '' })} disabled={!generationOptions.length}>
-                        <option value="">Select generation</option>
-                        {generationOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Engine</label>
-                      <select className="select" value={vehicleForm.engine} onChange={(event) => fetchCascade({ engine: event.target.value, ecu: '' })} disabled={!engineOptions.length}>
-                        <option value="">Select engine</option>
-                        {engineOptions.map((item) => <option key={item.name || item} value={item.name || item}>{item.name || item}</option>)}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>ECU</label>
-                      <select className="select" value={vehicleForm.ecu || ecuOptions[0] || ''} onChange={(event) => setVehicleForm({ ...vehicleForm, ecu: event.target.value })} disabled={!ecuOptions.length}>
-                        <option value="">Select ECU</option>
-                        {ecuOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Tuning type</label>
-                      <select className="select" value={vehicleForm.tuningType} onChange={(event) => setVehicleForm({ ...vehicleForm, tuningType: event.target.value })}>
-                        <option value="">Select tuning type</option>
-                        {tuningOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
 
-                  <div className="grid three">
-                    <div className="field"><label>Engine hp</label><input className="input" value={vehicleForm.engineHp} onChange={(event) => setVehicleForm({ ...vehicleForm, engineHp: event.target.value })} /></div>
-                    <div className="field"><label>Engine kW</label><input className="input" value={vehicleForm.engineKw} onChange={(event) => setVehicleForm({ ...vehicleForm, engineKw: event.target.value })} /></div>
-                    <div className="field"><label>Year</label><input className="input" value={vehicleForm.year} onChange={(event) => setVehicleForm({ ...vehicleForm, year: event.target.value })} /></div>
-                  </div>
+                    <div className="field">
+                      <label>Request note (optional)</label>
+                      <textarea className="textarea" value={vehicleForm.note} onChange={(event) => setVehicleForm({ ...vehicleForm, note: event.target.value })} />
+                    </div>
 
-                  <div className="grid two">
-                    <div className="field"><label>Gearbox</label><select className="select" value={vehicleForm.gearbox} onChange={(event) => setVehicleForm({ ...vehicleForm, gearbox: event.target.value })}><option value="">Select gearbox</option>{toolOptions?.gearboxes?.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
-                    <div className="field"><label>Time frame</label><select className="select" value={vehicleForm.timeFrame} onChange={(event) => setVehicleForm({ ...vehicleForm, timeFrame: event.target.value })}><option value="">Select timeframe</option>{toolOptions?.timeFrames?.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></div>
-                  </div>
-
-                  <div className="grid two">
-                    <div className="field"><label>License plate</label><input className="input" value={vehicleForm.licensePlate} onChange={(event) => setVehicleForm({ ...vehicleForm, licensePlate: event.target.value })} /></div>
-                    <div className="field"><label>VIN</label><input className="input" value={vehicleForm.vin} onChange={(event) => setVehicleForm({ ...vehicleForm, vin: event.target.value })} /></div>
-                    <div className="field"><label>Hardware number</label><input className="input" value={vehicleForm.hardwareNumber} onChange={(event) => setVehicleForm({ ...vehicleForm, hardwareNumber: event.target.value })} /></div>
-                    <div className="field"><label>Software number</label><input className="input" value={vehicleForm.softwareNumber} onChange={(event) => setVehicleForm({ ...vehicleForm, softwareNumber: event.target.value })} /></div>
-                  </div>
-
-                  <div className="field">
-                    <label>Additional options</label>
                     <div className="pill-row">
-                      {additionalOptions.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          className={classNames('pill', selectedOptions.includes(item.id) && 'ok')}
-                          onClick={() => setSelectedOptions((current) => current.includes(item.id) ? current.filter((value) => value !== item.id) : [...current, item.id])}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
+                      <span className="pill">Vehicle: {vehicleLabel || 'not chosen yet'}</span>
+                      <span className="pill ok">Credits: {uploadCredits}</span>
                     </div>
-                  </div>
 
-                  <div className="field">
-                    <label>Request note</label>
-                    <textarea className="textarea" value={vehicleForm.note} onChange={(event) => setVehicleForm({ ...vehicleForm, note: event.target.value })} />
-                  </div>
-
-                  <div className="pill-row">
-                    <span className="pill">Vehicle: {vehicleLabel || 'not chosen yet'}</span>
-                    <span className="pill ok">Credits: {uploadCredits}</span>
-                  </div>
-
-                  {user?.approval_status !== 'approved' ? (
-                    <div className="empty-state">
-                      Je account is nog niet goedgekeurd door een admin. Uploads en betalingen zijn geblokkeerd totdat je account is goedgekeurd.
+                    {user?.approval_status !== 'approved' ? (
+                      <div className="empty-state">
+                        Je account is nog niet goedgekeurd door een admin. Uploads en betalingen zijn geblokkeerd totdat je account is goedgekeurd.
+                      </div>
+                    ) : (
+                      <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
+                        {uploading ? 'Uploading...' : 'Submit request'}
+                      </button>
+                    )}
+                  </form>
+                ) : (
+                  <form className="grid" onSubmit={handleUpload}>
+                    <div className="field">
+                      <label>Original file</label>
+                      <input className="input" type="file" onChange={(event) => setUploadFile(event.target.files?.[0] || null)} />
                     </div>
-                  ) : (
-                    <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
-                      {uploading ? 'Uploading...' : 'Submit request'}
-                    </button>
-                  )}
-                </form>
+
+                    <div className="grid two">
+                      <div className="field">
+                        <label>Brand</label>
+                        <select className="select" value={vehicleForm.brand} onChange={(event) => fetchCascade({ brand: event.target.value, model: '', generation: '', engine: '', ecu: '' })}>
+                          <option value="">Select brand</option>
+                          {brandOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Model</label>
+                        <select className="select" value={vehicleForm.model} onChange={(event) => fetchCascade({ model: event.target.value, generation: '', engine: '', ecu: '' })} disabled={!modelOptions.length}>
+                          <option value="">Select model</option>
+                          {modelOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Generation</label>
+                        <select className="select" value={vehicleForm.generation} onChange={(event) => fetchCascade({ generation: event.target.value, engine: '', ecu: '' })} disabled={!generationOptions.length}>
+                          <option value="">Select generation</option>
+                          {generationOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Engine</label>
+                        <select className="select" value={vehicleForm.engine} onChange={(event) => fetchCascade({ engine: event.target.value, ecu: '' })} disabled={!engineOptions.length}>
+                          <option value="">Select engine</option>
+                          {engineOptions.map((item) => <option key={item.name || item} value={item.name || item}>{item.name || item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>ECU</label>
+                        <select className="select" value={vehicleForm.ecu || ecuOptions[0] || ''} onChange={(event) => setVehicleForm({ ...vehicleForm, ecu: event.target.value })} disabled={!ecuOptions.length}>
+                          <option value="">Select ECU</option>
+                          {ecuOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Tuning type</label>
+                        <select className="select" value={vehicleForm.tuningType} onChange={(event) => setVehicleForm({ ...vehicleForm, tuningType: event.target.value })}>
+                          <option value="">Select tuning type</option>
+                          {tuningOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid three">
+                      <div className="field"><label>Engine hp</label><input className="input" value={vehicleForm.engineHp} onChange={(event) => setVehicleForm({ ...vehicleForm, engineHp: event.target.value })} /></div>
+                      <div className="field"><label>Engine kW</label><input className="input" value={vehicleForm.engineKw} onChange={(event) => setVehicleForm({ ...vehicleForm, engineKw: event.target.value })} /></div>
+                      <div className="field"><label>Year</label><input className="input" value={vehicleForm.year} onChange={(event) => setVehicleForm({ ...vehicleForm, year: event.target.value })} /></div>
+                    </div>
+
+                    <div className="grid two">
+                      <div className="field"><label>Gearbox</label><select className="select" value={vehicleForm.gearbox} onChange={(event) => setVehicleForm({ ...vehicleForm, gearbox: event.target.value })}><option value="">Select gearbox</option>{toolOptions?.gearboxes?.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
+                      <div className="field"><label>Time frame</label><select className="select" value={vehicleForm.timeFrame} onChange={(event) => setVehicleForm({ ...vehicleForm, timeFrame: event.target.value })}><option value="">Select timeframe</option>{toolOptions?.timeFrames?.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></div>
+                    </div>
+
+                    <div className="grid two">
+                      <div className="field"><label>License plate</label><input className="input" value={vehicleForm.licensePlate} onChange={(event) => setVehicleForm({ ...vehicleForm, licensePlate: event.target.value })} /></div>
+                      <div className="field"><label>VIN</label><input className="input" value={vehicleForm.vin} onChange={(event) => setVehicleForm({ ...vehicleForm, vin: event.target.value })} /></div>
+                      <div className="field"><label>Hardware number</label><input className="input" value={vehicleForm.hardwareNumber} onChange={(event) => setVehicleForm({ ...vehicleForm, hardwareNumber: event.target.value })} /></div>
+                      <div className="field"><label>Software number</label><input className="input" value={vehicleForm.softwareNumber} onChange={(event) => setVehicleForm({ ...vehicleForm, softwareNumber: event.target.value })} /></div>
+                    </div>
+
+                    <div className="field">
+                      <label>Additional options</label>
+                      <div className="pill-row">
+                        {additionalOptions.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className={classNames('pill', selectedOptions.includes(item.id) && 'ok')}
+                            onClick={() => setSelectedOptions((current) => current.includes(item.id) ? current.filter((value) => value !== item.id) : [...current, item.id])}
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label>Request note</label>
+                      <textarea className="textarea" value={vehicleForm.note} onChange={(event) => setVehicleForm({ ...vehicleForm, note: event.target.value })} />
+                    </div>
+
+                    <div className="pill-row">
+                      <span className="pill">Vehicle: {vehicleLabel || 'not chosen yet'}</span>
+                      <span className="pill ok">Credits: {uploadCredits}</span>
+                    </div>
+
+                    {user?.approval_status !== 'approved' ? (
+                      <div className="empty-state">
+                        Je account is nog niet goedgekeurd door een admin. Uploads en betalingen zijn geblokkeerd totdat je account is goedgekeurd.
+                      </div>
+                    ) : (
+                      <button className="button button-primary" type="submit" disabled={uploading || !uploadFile}>
+                        {uploading ? 'Uploading...' : 'Submit request'}
+                      </button>
+                    )}
+                  </form>
+                )}
               </section>
             ) : null}
 
