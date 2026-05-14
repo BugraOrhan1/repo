@@ -1,12 +1,4 @@
 [build]
-  command = "npm run build --prefix frontend"
-  publish = "frontend/build"
-
-[context.production.environment]
-  NODE_VERSION = "18"
-
-[dev]
-  command = "npm start --prefix frontend"[build]
   base = "frontend"
   command = "npm run build"
   publish = "build"
