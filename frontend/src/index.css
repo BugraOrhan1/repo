@@ -251,9 +251,29 @@ a {
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #071029;
+  background: linear-gradient(135deg, rgba(124,219,157,0.95), rgba(53,194,255,0.95));
+  box-shadow: 0 8px 28px rgba(2,8,15,0.45);
+}
+
+.button-secondary.logout {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.04);
 }
 
 .card-title {

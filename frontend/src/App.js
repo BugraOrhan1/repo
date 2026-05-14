@@ -611,10 +611,13 @@ function App() {
             <div className="hero-side">
               <div className="card">
                 <div className="card-header" style={{ marginBottom: 12 }}>
-                  <div>
-                    <h2 className="card-title">{(user?.firstName || '') + ' ' + (user?.lastName || '')}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="avatar">{(((user?.firstName || '')[0] || '') + ((user?.lastName || '')[0] || '')).toUpperCase()}</div>
+                    <div>
+                      <h2 className="card-title">{(user?.firstName || '') + ' ' + (user?.lastName || '')}</h2>
+                    </div>
                   </div>
-                  <button className="button button-secondary" onClick={handleLogout}>Logout</button>
+                  <button className="button button-secondary logout" onClick={handleLogout}>Logout</button>
                 </div>
                 <div className="pill-row" style={{ justifyContent: 'flex-start' }}>
                   <span className="pill ok">{user?.credits ?? 0} credits</span>
