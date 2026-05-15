@@ -1135,6 +1135,10 @@ async def lookup_license_plate(plate: str):
             model = next((item for item in models if normalize_text(item) == 'golfgte'), None)
         elif 'gti' in rdw_model_norm and any('gti' in normalize_text(item) for item in models):
             model = next((item for item in models if 'gti' in normalize_text(item)), None)
+        elif 'gtd' in rdw_model_norm and any('gtd' in normalize_text(item) for item in models):
+            model = next((item for item in models if 'gtd' in normalize_text(item)), None)
+        elif ('golf' in rdw_model_norm and (rdw_model_norm.endswith('r') or any(word in rdw_model_norm for word in ['rs', 'r32', 'r36']))) and any('golf' in normalize_text(item) and 'r' in normalize_text(item) for item in models):
+            model = next((item for item in models if 'golf' in normalize_text(item) and 'r' in normalize_text(item)), None)
         else:
             model = best_text_match(models, rdw_model)
 
