@@ -5,6 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import time
 import re
 import uuid
 import jwt
@@ -1075,87 +1076,105 @@ async def lookup_license_plate(plate: str):
     base_url = 'https://opendata.rdw.nl/resource/m9d7-ebf2.json'
     fuel_url = 'https://opendata.rdw.nl/resource/8ys7-d773.json'
 
-    try:
-        vehicle_response = requests.get(
-            base_url,
-            params={
-                '$select': 'kenteken,merk,handelsbenaming,datum_eerste_toelating',
-                '$where': f"kenteken='{normalized_plate}'",
-                '$limit': '1',
-            },
-            timeout=10,
-        )
-        vehicle_response.raise_for_status()
-        vehicle_rows = vehicle_response.json()
+    last_error = None
+    vehicle_rows = []
+    for attempt in range(3):
+        try:
+            vehicle_response = requests.get(
+                base_url,
+                params={
+                    '$select': 'kenteken,merk,handelsbenaming,datum_eerste_toelating',
+                    '$where': f"kenteken='{normalized_plate}'",
+                    '$limit': '1',
+                },
+                timeout=10,
+            )
+            vehicle_response.raise_for_status()
+            vehicle_rows = vehicle_response.json()
+            last_error = None
+            break
+        except requests.RequestException as error:
+            last_error = error
+            if attempt < 2:
+                time.sleep(0.75 * (attempt + 1))
 
-        if not vehicle_rows:
-            return {'found': False, 'plate': normalized_plate}
+    if last_error is not None:
+        raise HTTPException(status_code=503, detail='RDW is tijdelijk niet beschikbaar. Probeer het over enkele seconden opnieuw.')
 
-        vehicle = vehicle_rows[0]
-        fuel_rows = requests.get(
-            fuel_url,
-            params={
-                '$select': 'brandstof_omschrijving',
-                '$where': f"kenteken='{normalized_plate}'",
-                '$limit': '10',
-            },
-            timeout=10,
-        ).json()
-        fuel_text = ' '.join((row.get('brandstof_omschrijving') or '') for row in fuel_rows).lower()
-        brand = best_text_match(get_brands() + EXTRA_BRANDS, vehicle.get('merk', ''))
-        models = get_models(brand) if brand else []
-        rdw_model = vehicle.get('handelsbenaming', '')
+    if not vehicle_rows:
+        return {'found': False, 'plate': normalized_plate}
 
-        model = None
-        rdw_model_norm = normalize_text(rdw_model)
-        if models:
-            if ('hybrid' in fuel_text or 'elektr' in fuel_text) and any(normalize_text(item) == 'golfgte' for item in models):
-                model = next((item for item in models if normalize_text(item) == 'golfgte'), None)
-            elif 'gti' in rdw_model_norm and any('gti' in normalize_text(item) for item in models):
-                model = next((item for item in models if 'gti' in normalize_text(item)), None)
-            else:
-                model = best_text_match(models, rdw_model, brand=brand, fuel_text=fuel_text)
+    vehicle = vehicle_rows[0]
+    fuel_rows = []
+    for attempt in range(3):
+        try:
+            fuel_response = requests.get(
+                fuel_url,
+                params={
+                    '$select': 'brandstof_omschrijving',
+                    '$where': f"kenteken='{normalized_plate}'",
+                    '$limit': '10',
+                },
+                timeout=10,
+            )
+            fuel_response.raise_for_status()
+            fuel_rows = fuel_response.json()
+            break
+        except requests.RequestException:
+            if attempt < 2:
+                time.sleep(0.75 * (attempt + 1))
 
-        generations = get_generations(brand, model) if brand and model else []
-        year = parse_year_from_date(vehicle.get('datum_eerste_toelating'))
-        generation = best_generation_match(generations, year) if generations else None
+    fuel_text = ' '.join((row.get('brandstof_omschrijving') or '') for row in fuel_rows).lower()
+    brand = best_text_match(get_brands() + EXTRA_BRANDS, vehicle.get('merk', ''))
+    models = get_models(brand) if brand else []
+    rdw_model = vehicle.get('handelsbenaming', '')
+    model = None
+    rdw_model_norm = normalize_text(rdw_model)
+    if models:
+        if ('hybrid' in fuel_text or 'elektr' in fuel_text) and any(normalize_text(item) == 'golfgte' for item in models):
+            model = next((item for item in models if normalize_text(item) == 'golfgte'), None)
+        elif 'gti' in rdw_model_norm and any('gti' in normalize_text(item) for item in models):
+            model = next((item for item in models if 'gti' in normalize_text(item)), None)
+        else:
+            model = best_text_match(models, rdw_model)
 
-        engine_options = get_engines(brand, model, generation) if brand and model and generation else []
-        engine = None
-        chosen_engine = None
-        if engine_options:
-            if 'hybrid' in fuel_text or 'elektr' in fuel_text:
-                chosen_engine = next((item for item in engine_options if 'ehybrid' in normalize_text(item.get('name', '')) or item.get('fuel') == 'H'), None)
-            elif 'diesel' in fuel_text:
-                chosen_engine = next((item for item in engine_options if item.get('fuel') == 'D'), None)
-            elif 'benzine' in fuel_text or 'petrol' in fuel_text:
-                chosen_engine = next((item for item in engine_options if item.get('fuel') == 'P'), None)
-            if not chosen_engine:
-                chosen_engine = engine_options[0]
-            engine = chosen_engine.get('name')
+    generations = get_generations(brand, model) if brand and model else []
+    year = parse_year_from_date(vehicle.get('datum_eerste_toelating'))
+    generation = best_generation_match(generations, year) if generations else None
 
-        ecu_options = get_ecus(brand, model, generation, engine) if brand and model and generation and engine else []
+    engine_options = get_engines(brand, model, generation) if brand and model and generation else []
+    engine = None
+    chosen_engine = None
+    if engine_options:
+        if 'hybrid' in fuel_text or 'elektr' in fuel_text:
+            chosen_engine = next((item for item in engine_options if 'ehybrid' in normalize_text(item.get('name', '')) or item.get('fuel') == 'H'), None)
+        elif 'diesel' in fuel_text:
+            chosen_engine = next((item for item in engine_options if item.get('fuel') == 'D'), None)
+        elif 'benzine' in fuel_text or 'petrol' in fuel_text:
+            chosen_engine = next((item for item in engine_options if item.get('fuel') == 'P'), None)
+        if not chosen_engine:
+            chosen_engine = engine_options[0]
+        engine = chosen_engine.get('name')
 
-        return {
-            'found': True,
-            'plate': normalized_plate,
-            'year': year,
-            'brand': brand,
-            'model': model,
-            'generation': generation,
-            'engine': engine,
-            'engineHp': chosen_engine.get('hp') if chosen_engine else None,
-            'engineKw': chosen_engine.get('kw') if chosen_engine else None,
-            'fuel': chosen_engine.get('fuel') if chosen_engine else None,
-            'ecu': ecu_options[0] if ecu_options else None,
-            'models': models,
-            'generations': generations,
-            'engines': engine_options,
-            'ecus': ecu_options,
-            'source': 'rdw',
-        }
-    except requests.RequestException as error:
-        raise HTTPException(status_code=502, detail=f'Kenteken lookup mislukt: {error}')
+    ecu_options = get_ecus(brand, model, generation, engine) if brand and model and generation and engine else []
+    return {
+        'found': True,
+        'plate': normalized_plate,
+        'year': year,
+        'brand': brand,
+        'model': model,
+        'generation': generation,
+        'engine': engine,
+        'engineHp': chosen_engine.get('hp') if chosen_engine else None,
+        'engineKw': chosen_engine.get('kw') if chosen_engine else None,
+        'fuel': chosen_engine.get('fuel') if chosen_engine else None,
+        'ecu': ecu_options[0] if ecu_options else None,
+        'models': models,
+        'generations': generations,
+        'engines': engine_options,
+        'ecus': ecu_options,
+        'source': 'rdw',
+    }
 
 
 # ---------- Form options ----------
