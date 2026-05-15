@@ -1076,6 +1076,7 @@ async def lookup_license_plate(plate: str):
     base_url = 'https://opendata.rdw.nl/resource/m9d7-ebf2.json'
     fuel_url = 'https://opendata.rdw.nl/resource/8ys7-d773.json'
 
+    # Fetch all available vehicle data from RDW
     last_error = None
     vehicle_rows = []
     for attempt in range(3):
@@ -1083,9 +1084,9 @@ async def lookup_license_plate(plate: str):
             vehicle_response = requests.get(
                 base_url,
                 params={
-                    '$select': 'kenteken,merk,handelsbenaming,datum_eerste_toelating',
+                    '$select': 'kenteken,merk,handelsbenaming,datum_eerste_toelating,aantal_cilinders,inrichting,voertuigsoort,massa_ledig_voertuig',
                     '$where': f"kenteken='{normalized_plate}'",
-                    '$limit': '1',
+                    '$limit': '5',
                 },
                 timeout=10,
             )
@@ -1105,13 +1106,15 @@ async def lookup_license_plate(plate: str):
         return {'found': False, 'plate': normalized_plate}
 
     vehicle = vehicle_rows[0]
+    
+    # Fetch fuel types (can have multiple)
     fuel_rows = []
     for attempt in range(3):
         try:
             fuel_response = requests.get(
                 fuel_url,
                 params={
-                    '$select': 'brandstof_omschrijving',
+                    '$select': 'brandstof_omschrijving,emissieklasse',
                     '$where': f"kenteken='{normalized_plate}'",
                     '$limit': '10',
                 },
@@ -1124,43 +1127,67 @@ async def lookup_license_plate(plate: str):
             if attempt < 2:
                 time.sleep(0.75 * (attempt + 1))
 
+    # Extract and analyze all fuel info
     fuel_text = ' '.join((row.get('brandstof_omschrijving') or '') for row in fuel_rows).lower()
+    emission_classes = [row.get('emissieklasse', '') for row in fuel_rows if row.get('emissieklasse')]
+    
+    # Brand matching
     brand = best_text_match(get_brands() + EXTRA_BRANDS, vehicle.get('merk', ''))
     models = get_models(brand) if brand else []
     rdw_model = vehicle.get('handelsbenaming', '')
+
+    # Model matching with comprehensive heuristics
     model = None
     rdw_model_norm = normalize_text(rdw_model)
     if models:
-        if ('hybrid' in fuel_text or 'elektr' in fuel_text) and any(normalize_text(item) == 'golfgte' for item in models):
-            model = next((item for item in models if normalize_text(item) == 'golfgte'), None)
+        # Priority 1: GTE/Hybrid electric
+        if ('hybrid' in fuel_text or 'elektr' in fuel_text) and any('gte' in normalize_text(item) for item in models):
+            model = next((item for item in models if 'gte' in normalize_text(item)), None)
+        # Priority 2: GTE check in handelsbenaming
+        elif 'gte' in rdw_model_norm and any('gte' in normalize_text(item) for item in models):
+            model = next((item for item in models if 'gte' in normalize_text(item)), None)
+        # Priority 3: GTI Performance
         elif 'gti' in rdw_model_norm and any('gti' in normalize_text(item) for item in models):
             model = next((item for item in models if 'gti' in normalize_text(item)), None)
+        # Priority 4: GTD Diesel performance
         elif 'gtd' in rdw_model_norm and any('gtd' in normalize_text(item) for item in models):
             model = next((item for item in models if 'gtd' in normalize_text(item)), None)
-        elif ('golf' in rdw_model_norm and (rdw_model_norm.endswith('r') or any(word in rdw_model_norm for word in ['rs', 'r32', 'r36']))) and any('golf' in normalize_text(item) and 'r' in normalize_text(item) for item in models):
-            model = next((item for item in models if 'golf' in normalize_text(item) and 'r' in normalize_text(item)), None)
-        else:
+        # Priority 5: R/RS/R32/R36 variants (Golf R, Arteon R, etc)
+        elif (rdw_model_norm.endswith('r') or any(word in rdw_model_norm for word in ['rs', 'r32', 'r36', 'r40'])) and any('r' in normalize_text(item) for item in models):
+            r_models = [item for item in models if normalize_text(item).endswith('r') or 'r ' in normalize_text(item)]
+            model = r_models[0] if r_models else None
+        # Fallback: Best text match
+        if not model:
             model = best_text_match(models, rdw_model)
 
+    # Get generation based on year
     generations = get_generations(brand, model) if brand and model else []
     year = parse_year_from_date(vehicle.get('datum_eerste_toelating'))
     generation = best_generation_match(generations, year) if generations else None
 
+    # Get engine options and select best match
     engine_options = get_engines(brand, model, generation) if brand and model and generation else []
     engine = None
     chosen_engine = None
     if engine_options:
+        # Try to match by fuel type
         if 'hybrid' in fuel_text or 'elektr' in fuel_text:
-            chosen_engine = next((item for item in engine_options if 'ehybrid' in normalize_text(item.get('name', '')) or item.get('fuel') == 'H'), None)
-        elif 'diesel' in fuel_text:
+            chosen_engine = next((item for item in engine_options if 'ehybrid' in normalize_text(item.get('name', '')) or item.get('fuel') == 'H' or item.get('fuel') == 'E'), None)
+        elif 'diesel' in fuel_text or 'gasoil' in fuel_text:
             chosen_engine = next((item for item in engine_options if item.get('fuel') == 'D'), None)
         elif 'benzine' in fuel_text or 'petrol' in fuel_text:
             chosen_engine = next((item for item in engine_options if item.get('fuel') == 'P'), None)
+        elif 'lpg' in fuel_text or 'gas' in fuel_text:
+            chosen_engine = next((item for item in engine_options if item.get('fuel') == 'G'), None)
+        
+        # Fallback to first available if no match
         if not chosen_engine:
             chosen_engine = engine_options[0]
+        
         engine = chosen_engine.get('name')
 
     ecu_options = get_ecus(brand, model, generation, engine) if brand and model and generation and engine else []
+
     return {
         'found': True,
         'plate': normalized_plate,
@@ -1172,6 +1199,12 @@ async def lookup_license_plate(plate: str):
         'engineHp': chosen_engine.get('hp') if chosen_engine else None,
         'engineKw': chosen_engine.get('kw') if chosen_engine else None,
         'fuel': chosen_engine.get('fuel') if chosen_engine else None,
+        'fuelType': fuel_text.strip() if fuel_text else None,
+        'cylinders': vehicle.get('aantal_cilinders'),
+        'inrichting': vehicle.get('inrichting'),
+        'voertuigsoort': vehicle.get('voertuigsoort'),
+        'mass': vehicle.get('massa_ledig_voertuig'),
+        'emissionClass': emission_classes[0] if emission_classes else None,
         'ecu': ecu_options[0] if ecu_options else None,
         'models': models,
         'generations': generations,
