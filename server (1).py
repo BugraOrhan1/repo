@@ -861,6 +861,18 @@ async def api_version_root():
     return {'commit': commit, 'time': now_iso()}
 
 
+@api_router.get("/debug/plate")
+async def debug_plate(plate: str):
+    norm = normalize_plate(plate)
+    return {
+        'received': plate,
+        'received_len': len(plate or ''),
+        'normalized': norm,
+        'normalized_len': len(norm),
+        'chars': [ord(c) for c in (plate or '')],
+    }
+
+
 # Simple runtime version endpoint to help verify deployed code
 @api_router.get("/version")
 async def api_version():
