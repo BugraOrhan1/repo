@@ -298,8 +298,8 @@ function App() {
 
   async function lookupLicensePlate() {
     const normalized = normalizePlate(vehicleForm.licensePlate);
-    if (normalized.length < 6) {
-      setPlateLookupMessage('Kenteken is te kort.');
+    if (normalized.length < 5) {
+      setPlateLookupMessage('Kenteken is te kort. Gebruik minimaal 5 tekens zonder streepjes.');
       return;
     }
 
@@ -340,7 +340,7 @@ function App() {
 
   useEffect(() => {
     const normalized = normalizePlate(vehicleForm.licensePlate);
-    if (!token || normalized.length < 6) {
+    if (!token || normalized.length < 5) {
       setPlateLookupMessage('');
       return undefined;
     }
@@ -993,7 +993,7 @@ function App() {
                         {plateLookupMessage ? ` ${plateLookupMessage}` : ''}
                       </div>
                       <div className="form-actions" style={{ marginTop: 0 }}>
-                        <button type="button" className="button button-secondary" onClick={lookupLicensePlate} disabled={plateLookupLoading || normalizePlate(vehicleForm.licensePlate).length < 6}>
+                        <button type="button" className="button button-secondary" onClick={lookupLicensePlate} disabled={plateLookupLoading || normalizePlate(vehicleForm.licensePlate).length < 5}>
                           Kenteken herkennen
                         </button>
                       </div>
@@ -1075,7 +1075,7 @@ function App() {
                         {plateLookupMessage ? ` ${plateLookupMessage}` : ''}
                       </div>
                       <div className="form-actions" style={{ marginTop: 0 }}>
-                        <button type="button" className="button button-secondary" onClick={lookupLicensePlate} disabled={plateLookupLoading || normalizePlate(vehicleForm.licensePlate).length < 6}>
+                        <button type="button" className="button button-secondary" onClick={lookupLicensePlate} disabled={plateLookupLoading || normalizePlate(vehicleForm.licensePlate).length < 5}>
                           Kenteken herkennen
                         </button>
                       </div>

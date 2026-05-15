@@ -1068,8 +1068,8 @@ async def vehicles_ecus(brand: str, model: str, generation: str, engine: str):
 @api_router.get("/vehicles/lookup-license-plate")
 async def lookup_license_plate(plate: str):
     normalized_plate = normalize_plate(plate)
-    if len(normalized_plate) < 6:
-      raise HTTPException(status_code=400, detail='Kenteken is te kort')
+    if len(normalized_plate) < 5:
+        raise HTTPException(status_code=400, detail='Kenteken is te kort. Gebruik minimaal 5 tekens zonder streepjes.')
 
     base_url = 'https://opendata.rdw.nl/resource/m9d7-ebf2.json'
     fuel_url = 'https://opendata.rdw.nl/resource/8ys7-d773.json'
