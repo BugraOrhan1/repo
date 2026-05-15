@@ -140,11 +140,13 @@ function App() {
     }, {});
   }, [notifications]);
 
+  const displayedFiles = user?.is_admin ? (adminFiles.length ? adminFiles : files) : files;
+
   const recentOrders = useMemo(() => {
-    return [...files]
+    return [...displayedFiles]
       .sort((left, right) => new Date(right.uploadedAt || 0) - new Date(left.uploadedAt || 0))
       .slice(0, 6);
-  }, [files]);
+  }, [displayedFiles]);
 
   function apiUrl(path) {
     return `${API_BASE}${path}`;
@@ -259,6 +261,7 @@ function App() {
           setAdminUsers(users);
           setAdminFiles(adminFileList);
           setAdminStats(stats);
+          setSelectedFileId((current) => current || adminFileList[0]?.id || '');
         }
       } catch (error) {
         if (!cancelled) setToast(error.message);
@@ -1099,7 +1102,7 @@ function App() {
                     <p className="card-subtitle">Pick a request to review the file thread and download links.</p>
                   </div>
                 </div>
-                {files.length ? (
+                {displayedFiles.length ? (
                   <table className="table">
                     <thead>
                       <tr>
@@ -1111,7 +1114,7 @@ function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {files.map((item) => (
+                      {displayedFiles.map((item) => (
                         <tr key={item.id} onClick={() => setSelectedFileId(item.id)} style={{ cursor: 'pointer' }} className={classNames(selectedFileId === item.id && 'active-row')}>
                           <td>{item.fileName}</td>
                           <td>{[item.brand, item.model, item.engine].filter(Boolean).join(' · ') || item.vehicle || 'Unknown'}</td>
