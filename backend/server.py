@@ -1204,6 +1204,125 @@ async def options_tools():
     }
 
 
+# ---------- Enhanced vehicle data for forms ----------
+@api_router.get("/vehicles/search")
+async def vehicles_search(q: str = '', brand: str = '', model: str = '', generation: str = ''):
+    """Search vehicles by brand, model, generation"""
+    results = []
+    
+    if brand:
+        models = get_models(brand)
+        if model:
+            gens = get_generations(brand, model)
+            if generation:
+                engines = get_engines(brand, model, generation)
+                for eng in engines:
+                    results.append({
+                        'brand': brand,
+                        'model': model,
+                        'generation': generation,
+                        'engine': eng.get('name'),
+                        'hp': eng.get('hp'),
+                        'kw': eng.get('kw'),
+                        'fuel': eng.get('fuel'),
+                        'ecus': eng.get('ecus', [])
+                    })
+            else:
+                results = [{'generation': g} for g in gens]
+        else:
+            results = [{'model': m} for m in models]
+    else:
+        brands = get_brands() + EXTRA_BRANDS
+        results = [{'brand': b} for b in brands]
+    
+    return results
+
+
+@api_router.get("/vehicles/full-info")
+async def vehicles_full_info(brand: str = '', model: str = '', generation: str = '', engine: str = ''):
+    """Get complete vehicle information for form pre-filling"""
+    if not (brand and model and generation and engine):
+        raise HTTPException(status_code=400, detail='Brand, model, generation, and engine are required')
+    
+    engines = get_engines(brand, model, generation)
+    engine_info = next((e for e in engines if e.get('name') == engine), None)
+    
+    if not engine_info:
+        raise HTTPException(status_code=404, detail='Engine not found')
+    
+    ecus = get_ecus(brand, model, generation, engine)
+    
+    return {
+        'brand': brand,
+        'model': model,
+        'generation': generation,
+        'engine': engine,
+        'engineHp': engine_info.get('hp'),
+        'engineKw': engine_info.get('kw'),
+        'fuel': engine_info.get('fuel'),
+        'fuelDescription': {
+            'P': 'Benzine (Petrol)',
+            'D': 'Diesel',
+            'H': 'Hybrid',
+            'E': 'Elektric',
+            'G': 'LPG/Gas',
+            'B': 'Bio-fuel'
+        }.get(engine_info.get('fuel'), 'Other'),
+        'ecus': ecus,
+        'ecosAvailable': len(ecus) > 0,
+        'tuningOptions': {
+            'maxHpIncrease': int((engine_info.get('hp', 0) * 0.25)),  # ~25% typical increase
+            'maxTorqueIncrease': int((engine_info.get('hp', 0) * 2)),  # ~2Nm per HP
+        }
+    }
+
+
+@api_router.post("/vehicles/complete-form")
+async def complete_vehicle_form(data: dict):
+    """Auto-complete vehicle form with all available info"""
+    plate = data.get('plate', '').upper().replace('-', '')
+    
+    if not plate:
+        raise HTTPException(status_code=400, detail='Kenteken is verplicht')
+    
+    # First try RDW lookup
+    rdw_result = await lookup_license_plate(plate)
+    
+    if not rdw_result.get('found'):
+        raise HTTPException(status_code=404, detail='Voertuig niet gevonden in RDW')
+    
+    # Build complete form data
+    brand = rdw_result.get('brand', '')
+    model = rdw_result.get('model', '')
+    generation = rdw_result.get('generation', '')
+    engine = rdw_result.get('engine', '')
+    
+    full_info = await vehicles_full_info(brand=brand, model=model, generation=generation, engine=engine)
+    
+    return {
+        'plate': plate,
+        'year': rdw_result.get('year'),
+        'brand': brand,
+        'model': model,
+        'generation': generation,
+        'engine': engine,
+        'engineHp': full_info.get('engineHp'),
+        'engineKw': full_info.get('engineKw'),
+        'fuel': full_info.get('fuel'),
+        'fuelDescription': full_info.get('fuelDescription'),
+        'ecu': rdw_result.get('ecu'),
+        'ecus': full_info.get('ecus'),
+        'available': {
+            'models': rdw_result.get('models', []),
+            'generations': rdw_result.get('generations', []),
+            'engines': rdw_result.get('engines', []),
+            'ecus': rdw_result.get('ecus', [])
+        },
+        'tuningOptions': full_info.get('tuningOptions'),
+        'source': 'rdw'
+    }
+
+
 # Seed admin user on startup
 @app.on_event("startup")
 async def seed_admin():
