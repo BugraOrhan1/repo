@@ -715,6 +715,7 @@ function App() {
           {(() => {
             const basic = [
               ['overview', 'Overview'],
+              ['chat', 'Chat'],
               ['upload', 'Upload'],
               ['files', 'Files'],
             ];
@@ -794,6 +795,111 @@ function App() {
                   </div>
                 </section>
               </>
+            ) : null}
+
+            {tab === 'chat' ? (
+              <section className="card">
+                <div className="card-header">
+                  <div>
+                    <h2 className="card-title">Chat</h2>
+                    <p className="card-subtitle">All messages are stored per order in the backend, so nothing disappears after refresh.</p>
+                  </div>
+                </div>
+                {recentOrders.length ? (
+                  <div className="order-switcher">
+                    {recentOrders.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={classNames('order-chip', selectedFileId === item.id && 'active')}
+                        onClick={() => setSelectedFileId(item.id)}
+                      >
+                        <span className="order-chip-title">{item.fileName}</span>
+                        <span className="order-chip-meta">{statusLabel(item.status)}</span>
+                        {unreadByFileId[item.id] ? <span className="order-chip-badge">{unreadByFileId[item.id]}</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                {fileDetail ? (
+                  <div className="grid" style={{ gap: 12 }}>
+                    <div className="pill-row">
+                      <span className={classNames('status', fileDetail.status)}>{statusLabel(fileDetail.status)}</span>
+                      <span className="pill">{fileDetail.fileName}</span>
+                      <span className="pill">{fileDetail.credits} credits</span>
+                    </div>
+                    <div className="list-item">
+                      <div className="list-meta">{[fileDetail.brand, fileDetail.model, fileDetail.engine].filter(Boolean).join(' · ') || 'No vehicle data yet.'}</div>
+                      <div className="list-meta">Uploaded {formatDate(fileDetail.uploadedAt)}</div>
+                      <div className="list-meta">User {fileDetail.userEmail}</div>
+                    </div>
+                    <div className="pill-row">
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        disabled={!fileDetail.hasOriginal}
+                        onClick={() => downloadAuthorizedFile(`/api/files/${fileDetail.id}/download/original`, fileDetail.fileName)}
+                      >
+                        Download original
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        disabled={!fileDetail.hasTuned}
+                        onClick={() => downloadAuthorizedFile(`/api/files/${fileDetail.id}/download/tuned`, fileDetail.tunedFileName || 'tuned.bin')}
+                      >
+                        Download tuned
+                      </button>
+                    </div>
+
+                    {user?.is_admin ? (
+                      <div className="grid" style={{ gap: 12 }}>
+                        <div className="field">
+                          <label>Upload tuned file</label>
+                          <input
+                            className="input"
+                            type="file"
+                            onChange={(event) => setAdminSelectedFiles((current) => ({ ...current, [fileDetail.id]: event.target.files?.[0] || null }))}
+                          />
+                        </div>
+                        <div className="form-actions" style={{ marginTop: 0 }}>
+                          <button
+                            type="button"
+                            className="button button-secondary"
+                            disabled={!adminSelectedFiles[fileDetail.id]}
+                            onClick={() => uploadTunedFile(fileDetail.id, adminSelectedFiles[fileDetail.id])}
+                          >
+                            Upload tuned file
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="list">
+                      {fileMessages.map((item) => (
+                        <div className={classNames('chat-message', item.senderRole === 'admin' ? 'admin' : 'user')} key={item.id}>
+                          <div className="chat-message-meta">
+                            <span className="chat-message-name">{item.senderName || 'System'}</span>
+                            <span className="chat-message-role">{item.senderRole}</span>
+                            <span className="chat-message-time">{formatDate(item.createdAt)}</span>
+                          </div>
+                          <p className="chat-message-body">{item.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <form className="grid" onSubmit={handleSendMessage}>
+                      <div className="field">
+                        <label>Reply</label>
+                        <textarea className="textarea" value={messageText} onChange={(event) => setMessageText(event.target.value)} />
+                      </div>
+                      <button className="button button-primary" type="submit">Send message</button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="empty-state">Select an order from Files to start chatting.</div>
+                )}
+              </section>
             ) : null}
 
             {tab === 'upload' ? (
@@ -1174,26 +1280,10 @@ function App() {
             <section className="card">
               <div className="card-header">
                 <div>
-                  <h2 className="card-title">Order chat</h2>
-                  <p className="card-subtitle">Talk with the customer, download the uploaded file and upload the tuned version here.</p>
+                  <h2 className="card-title">Selected file</h2>
+                  <p className="card-subtitle">Detail view for the currently selected order.</p>
                 </div>
               </div>
-              {recentOrders.length ? (
-                <div className="order-switcher">
-                  {recentOrders.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={classNames('order-chip', selectedFileId === item.id && 'active')}
-                      onClick={() => setSelectedFileId(item.id)}
-                    >
-                      <span className="order-chip-title">{item.fileName}</span>
-                      <span className="order-chip-meta">{statusLabel(item.status)}</span>
-                      {unreadByFileId[item.id] ? <span className="order-chip-badge">{unreadByFileId[item.id]}</span> : null}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
               {fileDetail ? (
                 <div className="grid" style={{ gap: 12 }}>
                   <div className="pill-row">
@@ -1206,70 +1296,9 @@ function App() {
                     <div className="list-meta">Uploaded {formatDate(fileDetail.uploadedAt)}</div>
                     <div className="list-meta">User {fileDetail.userEmail}</div>
                   </div>
-                  <div className="pill-row">
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      disabled={!fileDetail.hasOriginal}
-                      onClick={() => downloadAuthorizedFile(`/api/files/${fileDetail.id}/download/original`, fileDetail.fileName)}
-                    >
-                      Download original
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      disabled={!fileDetail.hasTuned}
-                      onClick={() => downloadAuthorizedFile(`/api/files/${fileDetail.id}/download/tuned`, fileDetail.tunedFileName || 'tuned.bin')}
-                    >
-                      Download tuned
-                    </button>
-                  </div>
-
-                  {user?.is_admin ? (
-                    <div className="grid" style={{ gap: 12 }}>
-                      <div className="field">
-                        <label>Upload tuned file</label>
-                        <input
-                          className="input"
-                          type="file"
-                          onChange={(event) => setAdminSelectedFiles((current) => ({ ...current, [fileDetail.id]: event.target.files?.[0] || null }))}
-                        />
-                      </div>
-                      <div className="form-actions" style={{ marginTop: 0 }}>
-                        <button
-                          type="button"
-                          className="button button-secondary"
-                          disabled={!adminSelectedFiles[fileDetail.id]}
-                          onClick={() => uploadTunedFile(fileDetail.id, adminSelectedFiles[fileDetail.id])}
-                        >
-                          Upload tuned file
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="list">
-                    {fileMessages.map((item) => (
-                      <div className={classNames('chat-message', item.senderRole === 'admin' ? 'admin' : 'user')} key={item.id}>
-                        <div className="chat-message-meta">
-                          <span className="chat-message-name">{item.senderName || 'System'}</span>
-                          <span className="chat-message-role">{item.senderRole}</span>
-                          <span className="chat-message-time">{formatDate(item.createdAt)}</span>
-                        </div>
-                        <p className="chat-message-body">{item.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <form className="grid" onSubmit={handleSendMessage}>
-                    <div className="field">
-                      <label>Reply</label>
-                      <textarea className="textarea" value={messageText} onChange={(event) => setMessageText(event.target.value)} />
-                    </div>
-                    <button className="button button-primary" type="submit">Send message</button>
-                  </form>
                 </div>
               ) : (
-                <div className="empty-state">Select an order to see the chat and files.</div>
+                <div className="empty-state">Select an order from Chat or Files.</div>
               )}
             </section>
 
