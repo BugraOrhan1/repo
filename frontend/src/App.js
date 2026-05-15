@@ -1148,8 +1148,8 @@ function App() {
             <section className="card">
               <div className="card-header">
                 <div>
-                  <h2 className="card-title">Selected file</h2>
-                  <p className="card-subtitle">Detail view and support thread.</p>
+                  <h2 className="card-title">Order chat</h2>
+                  <p className="card-subtitle">Talk with the customer, download the uploaded file and upload the tuned version here.</p>
                 </div>
               </div>
               {fileDetail ? (
@@ -1182,6 +1182,30 @@ function App() {
                       Download tuned
                     </button>
                   </div>
+
+                  {user?.is_admin ? (
+                    <div className="grid" style={{ gap: 12 }}>
+                      <div className="field">
+                        <label>Upload tuned file</label>
+                        <input
+                          className="input"
+                          type="file"
+                          onChange={(event) => setAdminSelectedFiles((current) => ({ ...current, [fileDetail.id]: event.target.files?.[0] || null }))}
+                        />
+                      </div>
+                      <div className="form-actions" style={{ marginTop: 0 }}>
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          disabled={!adminSelectedFiles[fileDetail.id]}
+                          onClick={() => uploadTunedFile(fileDetail.id, adminSelectedFiles[fileDetail.id])}
+                        >
+                          Upload tuned file
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="list">
                     {fileMessages.map((item) => (
                       <div className="list-item" key={item.id}>
@@ -1205,7 +1229,7 @@ function App() {
                   </form>
                 </div>
               ) : (
-                <div className="empty-state">Select a file to see the thread.</div>
+                <div className="empty-state">Select an order to see the chat and files.</div>
               )}
             </section>
 
