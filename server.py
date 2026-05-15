@@ -16,6 +16,7 @@ from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from data.vehicles_seed import get_brands, get_models, get_generations, get_engines, get_ecus
 import requests
+import subprocess
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1195,6 +1196,17 @@ async def seed_admin():
 
 
 app.include_router(api_router)
+
+
+# Simple runtime version endpoint to help verify deployed code
+@api_router.get("/version")
+async def api_version():
+    commit = None
+    try:
+        commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd=str(ROOT_DIR), stderr=subprocess.DEVNULL).decode().strip()
+    except Exception:
+        commit = None
+    return {'commit': commit, 'time': now_iso()}
 
 app.add_middleware(
     CORSMiddleware,
