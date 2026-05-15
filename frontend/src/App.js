@@ -296,6 +296,24 @@ function App() {
     return String(value || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
   }
 
+  async function lookupLicensePlate() {
+    const normalized = normalizePlate(vehicleForm.licensePlate);
+    if (normalized.length < 6) {
+      setPlateLookupMessage('Kenteken is te kort.');
+      return;
+    }
+
+    setPlateLookupLoading(true);
+    try {
+      const result = await apiFetch(`/api/vehicles/lookup-license-plate?plate=${encodeURIComponent(vehicleForm.licensePlate)}`, { token });
+      await applyPlateLookup(result);
+    } catch (error) {
+      setPlateLookupMessage(error.message);
+    } finally {
+      setPlateLookupLoading(false);
+    }
+  }
+
   async function applyPlateLookup(result) {
     if (!result?.found) {
       setPlateLookupMessage('Geen automatische match gevonden. Handmatig selecteren blijft mogelijk.');
@@ -327,16 +345,8 @@ function App() {
       return undefined;
     }
 
-    const timeout = setTimeout(async () => {
-      setPlateLookupLoading(true);
-      try {
-        const result = await apiFetch(`/api/vehicles/lookup-license-plate?plate=${encodeURIComponent(vehicleForm.licensePlate)}`, { token });
-        await applyPlateLookup(result);
-      } catch (error) {
-        setPlateLookupMessage(error.message);
-      } finally {
-        setPlateLookupLoading(false);
-      }
+    const timeout = setTimeout(() => {
+      lookupLicensePlate();
     }, 650);
 
     return () => clearTimeout(timeout);
@@ -982,6 +992,11 @@ function App() {
                         {plateLookupLoading ? ' Zoeken...' : ''}
                         {plateLookupMessage ? ` ${plateLookupMessage}` : ''}
                       </div>
+                      <div className="form-actions" style={{ marginTop: 0 }}>
+                        <button type="button" className="button button-secondary" onClick={lookupLicensePlate} disabled={plateLookupLoading || normalizePlate(vehicleForm.licensePlate).length < 6}>
+                          Kenteken herkennen
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid two">
@@ -1058,6 +1073,11 @@ function App() {
                       <div className="muted small">
                         {plateLookupLoading ? ' Zoeken...' : ''}
                         {plateLookupMessage ? ` ${plateLookupMessage}` : ''}
+                      </div>
+                      <div className="form-actions" style={{ marginTop: 0 }}>
+                        <button type="button" className="button button-secondary" onClick={lookupLicensePlate} disabled={plateLookupLoading || normalizePlate(vehicleForm.licensePlate).length < 6}>
+                          Kenteken herkennen
+                        </button>
                       </div>
                     </div>
 
