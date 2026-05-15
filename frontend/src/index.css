@@ -334,6 +334,10 @@ a {
   letter-spacing: 0.08em;
 }
 
+.field .small {
+  line-height: 1.45;
+}
+
 .input,
 .select,
 .textarea {

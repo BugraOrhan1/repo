@@ -1,0 +1,24 @@
+# Environment
+.env
+env.txt
+env (1).txt
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Node / frontend
+frontend/build/
+frontend/node_modules/
+frontend/.env.local
+frontend_build.zip
+
+# Uploads and runtime artifacts
+uploads/
+backend/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
