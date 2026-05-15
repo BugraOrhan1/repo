@@ -260,7 +260,7 @@ def normalize_text(value: str) -> str:
     return re.sub(r'[^a-z0-9]+', '', (value or '').lower())
 
 def normalize_plate(value: str) -> str:
-    return re.sub(r'[^a-z0-9]+', '', (value or '').upper())
+    return re.sub(r'[^A-Z0-9]+', '', (value or '').upper())
 
 def parse_year_from_date(value: str) -> Optional[int]:
     if not value:
