@@ -37,14 +37,20 @@ function classNames(...items) {
 }
 
 function formatDate(value) {
-  if (!value) return 'Unknown';
+  if (!value) return 'Onbekend';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
 }
 
 function statusLabel(status) {
-  return String(status || 'pending').replace(/_/g, ' ');
+  const labels = {
+    pending: 'In afwachting',
+    in_progress: 'In behandeling',
+    completed: 'Voltooid',
+    rejected: 'Afgewezen',
+  };
+  return labels[String(status || 'pending')] || String(status || 'Onbekend').replace(/_/g, ' ');
 }
 
 async function apiFetch(path, { token, method = 'GET', body, isForm = false } = {}) {
@@ -61,7 +67,7 @@ async function apiFetch(path, { token, method = 'GET', body, isForm = false } = 
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const message = typeof payload === 'object' ? payload.detail || payload.message || 'Request failed' : payload || 'Request failed';
+    const message = typeof payload === 'object' ? payload.detail || payload.message || 'Verzoek mislukt' : payload || 'Verzoek mislukt';
     throw new Error(message);
   }
 
@@ -432,7 +438,7 @@ function App() {
       const formData = new FormData();
       formData.append('file', uploadFile);
       formData.append('vehicle', vehicleLabel || uploadFile.name);
-      formData.append('ecu', vehicleForm.ecu || ecuOptions[0] || 'Otherwise, namely');
+      formData.append('ecu', vehicleForm.ecu || ecuOptions[0] || 'Overig');
       formData.append('tuningOptions', selectedOptions.join(','));
       formData.append('credits', String(uploadCredits));
       formData.append('note', vehicleForm.note || '');
@@ -447,7 +453,7 @@ function App() {
         isForm: true,
       });
 
-      setToast('File uploaded.');
+      setToast('Bestand geüpload.');
       setVehicleForm(emptyVehicleForm);
       setSelectedOptions([]);
       setUploadFile(null);
@@ -472,7 +478,7 @@ function App() {
       setMessageText('');
       const messages = await apiFetch(`/api/files/${selectedFileId}/messages`, { token });
       setFileMessages(messages);
-      setToast('Message sent.');
+      setToast('Bericht verzonden.');
     } catch (error) {
       setToast(error.message);
     }
@@ -498,7 +504,7 @@ function App() {
       });
       setUser(result.user);
       setCreditsTransactions((current) => [result.transaction, ...current]);
-      setToast('Credits added.');
+      setToast('Credits toegevoegd.');
     } catch (error) {
       setToast(error.message);
     }
@@ -506,7 +512,7 @@ function App() {
 
   async function toggleNotificationRead() {
     await markNotificationsRead();
-    setToast('Notifications marked as read.');
+    setToast('Meldingen als gelezen gemarkeerd.');
   }
 
   async function updateFileStatus(fileId, status) {
@@ -682,67 +688,67 @@ function App() {
           <div className="login-visual">
             <span className="eyebrow">Fast Chiptuningfiles</span>
             <h1 className="hero-title" style={{ marginTop: 18 }}>
-              Eén paneel voor uploads, status, support en credits.
+              Eén paneel voor uploads, status, ondersteuning en credits.
             </h1>
             <p className="hero-copy">
-              Dit dashboard koppelt direct op de bestaande FastAPI-backend. Na inloggen kun je voertuigen kiezen,
-              files uploaden, berichten sturen en adminacties uitvoeren voor de werkstroom.
+              Dit dashboard koppelt direct met de bestaande FastAPI-backend. Na inloggen kun je voertuigen kiezen,
+              bestanden uploaden, berichten sturen en beheeracties uitvoeren voor de werkstroom.
             </p>
           </div>
 
           <div className="card" style={{ margin: 0 }}>
             <div className="auth-tabs">
               <button className={classNames('auth-tab', authMode === 'login' && 'active')} onClick={() => setAuthMode('login')}>
-                Login
+                Inloggen
               </button>
               <button className={classNames('auth-tab', authMode === 'register' && 'active')} onClick={() => setAuthMode('register')}>
-                Register
+                Registreren
               </button>
             </div>
 
             {authMode === 'login' ? (
                 <form className="grid" onSubmit={handleLogin}>
                 <div className="field">
-                  <label>Email</label>
+                  <label>E-mail</label>
                   <input className="input" type="email" value={authForm.email} onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Password</label>
+                  <label>Wachtwoord</label>
                   <input className="input" type="password" value={authForm.password} onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })} />
                 </div>
                 <button className="button button-primary" type="submit" disabled={loading}>
-                  {loading ? 'Signing in...' : 'Open panel'}
+                  {loading ? 'Bezig met inloggen...' : 'Paneel openen'}
                 </button>
                 {/* Admin seed removed from UI for security. */}
               </form>
             ) : (
               <form className="grid two" onSubmit={handleRegister}>
                 <div className="field">
-                  <label>First name</label>
+                  <label>Voornaam</label>
                   <input className="input" value={authForm.firstName} onChange={(event) => setAuthForm({ ...authForm, firstName: event.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Last name</label>
+                  <label>Achternaam</label>
                   <input className="input" value={authForm.lastName} onChange={(event) => setAuthForm({ ...authForm, lastName: event.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Email</label>
+                  <label>E-mail</label>
                   <input className="input" type="email" value={authForm.email} onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Password</label>
+                  <label>Wachtwoord</label>
                   <input className="input" type="password" value={authForm.password} onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Company</label>
+                  <label>Bedrijf</label>
                   <input className="input" value={authForm.company} onChange={(event) => setAuthForm({ ...authForm, company: event.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Country</label>
+                  <label>Land</label>
                   <input className="input" value={authForm.country} onChange={(event) => setAuthForm({ ...authForm, country: event.target.value })} />
                 </div>
                 <button className="button button-primary" type="submit" style={{ gridColumn: '1 / -1' }} disabled={loading}>
-                  {loading ? 'Creating account...' : 'Create account'}
+                  {loading ? 'Account wordt aangemaakt...' : 'Account aanmaken'}
                 </button>
               </form>
             )}
@@ -763,7 +769,7 @@ function App() {
               <h2 className="card-title">{(user?.firstName || '') + ' ' + (user?.lastName || '')}</h2>
               <p className="card-subtitle">{user?.email}</p>
             </div>
-            <button className="button button-secondary" onClick={handleLogout}>Logout</button>
+            <button className="button button-secondary" onClick={handleLogout}>Uitloggen</button>
           </div>
           <div className="pill-row">
             <span className="pill ok">{user?.credits ?? 0} credits</span>
@@ -773,15 +779,15 @@ function App() {
         <nav className="nav-bar">
           {(() => {
             const basic = [
-              ['overview', 'Overview'],
+              ['overview', 'Overzicht'],
               ['chat', 'Chat'],
-              ['upload', 'Upload'],
-              ['files', 'Files'],
+              ['upload', 'Uploaden'],
+              ['files', 'Bestanden'],
             ];
             const advanced = [
               ['credits', 'Credits'],
-              ['notifications', `Notifications (${unreadCount})`],
-              ...(user?.is_admin ? [['admin', 'Admin']] : []),
+              ['notifications', `Meldingen (${unreadCount})`],
+              ...(user?.is_admin ? [['admin', 'Beheer']] : []),
             ];
             const items = showAdvanced ? [...basic, ...advanced] : basic;
             return items.map(([key, label]) => (
@@ -794,7 +800,7 @@ function App() {
           {user?.is_admin ? (
             <div style={{ marginLeft: 'auto' }}>
               <button className="button button-secondary" onClick={() => setShowAdvanced((v) => !v)}>
-                {showAdvanced ? 'Hide advanced' : 'Show advanced'}
+                {showAdvanced ? 'Verberg uitgebreid' : 'Toon uitgebreid'}
               </button>
             </div>
           ) : null}
@@ -807,10 +813,10 @@ function App() {
                 <section className="card">
                   <div className="card-header">
                     <div>
-                      <h2 className="card-title">Current work queue</h2>
-                      <p className="card-subtitle">A compact summary of everything the backend already knows about your account.</p>
+                      <h2 className="card-title">Huidige wachtrij</h2>
+                      <p className="card-subtitle">Een compact overzicht van alles wat de backend al weet over je account.</p>
                     </div>
-                    <span className="pill">{files.filter((item) => item.status === 'pending').length} pending</span>
+                    <span className="pill">{files.filter((item) => item.status === 'pending').length} in afwachting</span>
                   </div>
                   {files.length ? (
                     <div className="list">
@@ -819,7 +825,7 @@ function App() {
                           <div className="list-top">
                             <div>
                               <h3 className="list-title">{item.fileName}</h3>
-                              <div className="list-meta">{item.brand || 'Unknown brand'} · {item.model || 'Unknown model'} · {formatDate(item.uploadedAt)}</div>
+                              <div className="list-meta">{item.brand || 'Onbekend merk'} · {item.model || 'Onbekend model'} · {formatDate(item.uploadedAt)}</div>
                             </div>
                             <span className={classNames('status', item.status)}>{statusLabel(item.status)}</span>
                           </div>
@@ -827,17 +833,17 @@ function App() {
                       ))}
                     </div>
                   ) : (
-                    <div className="empty-state">No files yet. Upload your first one from the Upload tab.</div>
+                    <div className="empty-state">Nog geen bestanden. Upload je eerste bestand via het tabblad Uploaden.</div>
                   )}
                 </section>
 
                 <section className="card">
                   <div className="card-header">
                     <div>
-                      <h2 className="card-title">Notifications</h2>
-                      <p className="card-subtitle">Updates from support and status changes.</p>
+                      <h2 className="card-title">Meldingen</h2>
+                      <p className="card-subtitle">Updates van support en statuswijzigingen.</p>
                     </div>
-                    <button className="button button-secondary" onClick={toggleNotificationRead}>Mark all read</button>
+                    <button className="button button-secondary" onClick={toggleNotificationRead}>Alles als gelezen markeren</button>
                   </div>
                   <div className="list">
                     {notifications.slice(0, 4).map((item) => (
@@ -845,9 +851,9 @@ function App() {
                         <div className="list-top">
                           <div>
                             <h3 className="list-title">{item.title}</h3>
-                            <div className="list-meta">{item.body || 'No details provided.'}</div>
+                            <div className="list-meta">{item.body || 'Geen details beschikbaar.'}</div>
                           </div>
-                          <span className={classNames('pill', item.read ? '' : 'warn')}>{item.read ? 'Read' : 'New'}</span>
+                          <span className={classNames('pill', item.read ? '' : 'warn')}>{item.read ? 'Gelezen' : 'Nieuw'}</span>
                         </div>
                       </div>
                     ))}
@@ -861,7 +867,7 @@ function App() {
                 <div className="card-header">
                   <div>
                     <h2 className="card-title">Chat</h2>
-                    <p className="card-subtitle">All messages are stored per order in the backend, so nothing disappears after refresh.</p>
+                    <p className="card-subtitle">Alle berichten worden per opdracht in de backend opgeslagen, dus niets verdwijnt na verversen.</p>
                   </div>
                 </div>
                 {recentOrders.length ? (
@@ -889,9 +895,9 @@ function App() {
                       <span className="pill">{fileDetail.credits} credits</span>
                     </div>
                     <div className="list-item">
-                      <div className="list-meta">{[fileDetail.brand, fileDetail.model, fileDetail.engine].filter(Boolean).join(' · ') || 'No vehicle data yet.'}</div>
-                      <div className="list-meta">Uploaded {formatDate(fileDetail.uploadedAt)}</div>
-                      <div className="list-meta">User {fileDetail.userEmail}</div>
+                      <div className="list-meta">{[fileDetail.brand, fileDetail.model, fileDetail.engine].filter(Boolean).join(' · ') || 'Nog geen voertuiggegevens.'}</div>
+                      <div className="list-meta">Geüpload {formatDate(fileDetail.uploadedAt)}</div>
+                      <div className="list-meta">Gebruiker {fileDetail.userEmail}</div>
                     </div>
                     <div className="pill-row">
                       <button
@@ -900,7 +906,7 @@ function App() {
                         disabled={!fileDetail.hasOriginal}
                         onClick={() => downloadAuthorizedFile(`/api/files/${fileDetail.id}/download/original`, fileDetail.fileName)}
                       >
-                        Download original
+                        Origineel downloaden
                       </button>
                       <button
                         type="button"
@@ -908,14 +914,14 @@ function App() {
                         disabled={!fileDetail.hasTuned}
                         onClick={() => downloadAuthorizedFile(`/api/files/${fileDetail.id}/download/tuned`, fileDetail.tunedFileName || 'tuned.bin')}
                       >
-                        Download tuned
+                        Gewijzigd bestand downloaden
                       </button>
                     </div>
 
                     {user?.is_admin ? (
                       <div className="grid" style={{ gap: 12 }}>
                         <div className="field">
-                          <label>Upload tuned file</label>
+                          <label>Gewijzigd bestand uploaden</label>
                           <input
                             className="input"
                             type="file"
@@ -929,7 +935,7 @@ function App() {
                             disabled={!adminSelectedFiles[fileDetail.id]}
                             onClick={() => uploadTunedFile(fileDetail.id, adminSelectedFiles[fileDetail.id])}
                           >
-                            Upload tuned file
+                            Gewijzigd bestand uploaden
                           </button>
                         </div>
                       </div>
@@ -949,14 +955,14 @@ function App() {
                     </div>
                     <form className="grid" onSubmit={handleSendMessage}>
                       <div className="field">
-                        <label>Reply</label>
+                        <label>Antwoord</label>
                         <textarea className="textarea" value={messageText} onChange={(event) => setMessageText(event.target.value)} />
                       </div>
-                      <button className="button button-primary" type="submit">Send message</button>
+                      <button className="button button-primary" type="submit">Bericht verzenden</button>
                     </form>
                   </div>
                 ) : (
-                  <div className="empty-state">Select an order from Files to start chatting.</div>
+                  <div className="empty-state">Selecteer een opdracht via Bestanden om te chatten.</div>
                 )}
               </section>
             ) : null}
@@ -1190,36 +1196,36 @@ function App() {
               <section className="card">
                 <div className="card-header">
                   <div>
-                    <h2 className="card-title">My files</h2>
-                    <p className="card-subtitle">Pick a request to review the file thread and download links.</p>
+                    <h2 className="card-title">Mijn bestanden</h2>
+                    <p className="card-subtitle">Kies een aanvraag om de bestands-thread en downloadlinks te bekijken.</p>
                   </div>
                 </div>
                 {displayedFiles.length ? (
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>File</th>
-                        <th>Vehicle</th>
+                        <th>Bestand</th>
+                        <th>Voertuig</th>
                         <th>Status</th>
-                        <th>Uploaded</th>
-                        <th>Action</th>
+                        <th>Geüpload</th>
+                        <th>Actie</th>
                       </tr>
                     </thead>
                     <tbody>
                       {displayedFiles.map((item) => (
                         <tr key={item.id} onClick={() => setSelectedFileId(item.id)} style={{ cursor: 'pointer' }} className={classNames(selectedFileId === item.id && 'active-row')}>
                           <td>{item.fileName}</td>
-                          <td>{[item.brand, item.model, item.engine].filter(Boolean).join(' · ') || item.vehicle || 'Unknown'}</td>
+                          <td>{[item.brand, item.model, item.engine].filter(Boolean).join(' · ') || item.vehicle || 'Onbekend'}</td>
                           <td>
                             <div className="pill-row">
                               <span className={classNames('status', item.status)}>{statusLabel(item.status)}</span>
-                              {unreadByFileId[item.id] ? <span className="pill warn">{unreadByFileId[item.id]} new</span> : null}
+                              {unreadByFileId[item.id] ? <span className="pill warn">{unreadByFileId[item.id]} nieuw</span> : null}
                             </div>
                           </td>
                           <td>{formatDate(item.uploadedAt)}</td>
                           <td>
                             <button type="button" className="pill" onClick={(event) => { event.stopPropagation(); setSelectedFileId(item.id); }}>
-                              Open
+                              Openen
                             </button>
                           </td>
                         </tr>
@@ -1227,7 +1233,7 @@ function App() {
                     </tbody>
                   </table>
                 ) : (
-                  <div className="empty-state">No uploads available yet.</div>
+                  <div className="empty-state">Nog geen uploads beschikbaar.</div>
                 )}
               </section>
             ) : null}
@@ -1237,18 +1243,18 @@ function App() {
                 <div className="card-header">
                   <div>
                     <h2 className="card-title">Credits</h2>
-                    <p className="card-subtitle">Purchase a package, then keep the ledger visible for the team.</p>
+                    <p className="card-subtitle">Koop een pakket en houd het overzicht zichtbaar voor het team.</p>
                   </div>
                 </div>
                 <div className="grid two">
                   <div className="field">
-                    <label>Package</label>
+                    <label>Pakket</label>
                     <select className="select" value={purchaseId} onChange={(event) => setPurchaseId(event.target.value)}>
                       {packages.map((item) => <option key={item.id} value={item.id}>{item.credits} credits - {item.price} EUR</option>)}
                     </select>
                   </div>
                   <div className="field" style={{ alignSelf: 'end' }}>
-                    <button className="button button-primary" onClick={purchaseCredits}>Purchase credits</button>
+                    <button className="button button-primary" onClick={purchaseCredits}>Credits kopen</button>
                   </div>
                 </div>
                 <div className="list" style={{ marginTop: 16 }}>
@@ -1271,10 +1277,10 @@ function App() {
               <section className="card">
                 <div className="card-header">
                   <div>
-                    <h2 className="card-title">Notifications</h2>
-                    <p className="card-subtitle">Direct messages, file events and credits updates.</p>
+                    <h2 className="card-title">Meldingen</h2>
+                    <p className="card-subtitle">Directe berichten, bestandsgebeurtenissen en credit-updates.</p>
                   </div>
-                  <button className="button button-secondary" onClick={toggleNotificationRead}>Mark all read</button>
+                  <button className="button button-secondary" onClick={toggleNotificationRead}>Alles als gelezen markeren</button>
                 </div>
                 <div className="list">
                   {notifications.map((item) => (
@@ -1282,9 +1288,9 @@ function App() {
                       <div className="list-top">
                         <div>
                           <h3 className="list-title">{item.title}</h3>
-                          <div className="list-meta">{item.body || 'No extra details.'}</div>
+                          <div className="list-meta">{item.body || 'Geen extra details.'}</div>
                         </div>
-                        <span className={classNames('pill', item.read ? '' : 'warn')}>{item.read ? 'Read' : 'Unread'}</span>
+                          <span className={classNames('pill', item.read ? '' : 'warn')}>{item.read ? 'Gelezen' : 'Ongelezen'}</span>
                       </div>
                     </div>
                   ))}
@@ -1296,15 +1302,15 @@ function App() {
               <section className="card">
                 <div className="card-header">
                   <div>
-                    <h2 className="card-title">Admin console</h2>
-                    <p className="card-subtitle">User management and file flow controls.</p>
+                    <h2 className="card-title">Beheerconsole</h2>
+                    <p className="card-subtitle">Gebruikersbeheer en bestandscontrole.</p>
                   </div>
                 </div>
 
                 <div className="grid three" style={{ marginBottom: 18 }}>
-                  <div className="tile"><span className="tile-value">{adminStats?.totalUsers ?? 0}</span><span className="tile-label">Users</span></div>
-                  <div className="tile"><span className="tile-value">{adminStats?.totalFiles ?? 0}</span><span className="tile-label">Files</span></div>
-                  <div className="tile"><span className="tile-value">{adminStats?.completed ?? 0}</span><span className="tile-label">Completed</span></div>
+                  <div className="tile"><span className="tile-value">{adminStats?.totalUsers ?? 0}</span><span className="tile-label">Gebruikers</span></div>
+                  <div className="tile"><span className="tile-value">{adminStats?.totalFiles ?? 0}</span><span className="tile-label">Bestanden</span></div>
+                  <div className="tile"><span className="tile-value">{adminStats?.completed ?? 0}</span><span className="tile-label">Voltooid</span></div>
                 </div>
 
                 <div className="list" style={{ marginBottom: 20 }}>
@@ -1313,7 +1319,7 @@ function App() {
                       <div className="list-top">
                         <div>
                           <h3 className="list-title">{item.fileName}</h3>
-                          <div className="list-meta">{item.userEmail} · {item.brand || 'Unknown brand'} · {formatDate(item.uploadedAt)}</div>
+                          <div className="list-meta">{item.userEmail} · {item.brand || 'Onbekend merk'} · {formatDate(item.uploadedAt)}</div>
                         </div>
                         <div className="pill-row" style={{ justifyContent: 'flex-end' }}>
                           {statusOrder.map((status) => (
@@ -1333,7 +1339,7 @@ function App() {
                           disabled={!adminSelectedFiles[item.id]}
                           onClick={() => uploadTunedFile(item.id, adminSelectedFiles[item.id])}
                         >
-                          Upload tuned file
+                          Gewijzigd bestand uploaden
                         </button>
                       </div>
                     </div>
@@ -1346,7 +1352,7 @@ function App() {
                       <div className="list-top">
                         <div>
                           <h3 className="list-title">{item.firstName} {item.lastName}</h3>
-                          <div className="list-meta">{item.email} · {item.company || 'No company'} · Credits {item.credits}</div>
+                          <div className="list-meta">{item.email} · {item.company || 'Geen bedrijf'} · Credits {item.credits}</div>
                         </div>
                         <div className="pill-row">
                           <button className="pill ok" onClick={() => adjustCredits(item.id, 5)}>+5</button>
@@ -1355,12 +1361,12 @@ function App() {
                       </div>
                       <div style={{ marginTop: 12 }}>
                         <div className="pill-row">
-                          <span className="pill">Status: {item.approval_status || 'pending'}</span>
+                          <span className="pill">Status: {item.approval_status || 'in afwachting'}</span>
                           {item.approval_status !== 'approved' && (
-                            <button className="button button-primary" onClick={() => setUserApproval(item.id, 'approved')}>Approve</button>
+                            <button className="button button-primary" onClick={() => setUserApproval(item.id, 'approved')}>Goedkeuren</button>
                           )}
                           {item.approval_status !== 'rejected' && (
-                            <button className="button button-secondary" onClick={() => setUserApproval(item.id, 'rejected')}>Reject</button>
+                            <button className="button button-secondary" onClick={() => setUserApproval(item.id, 'rejected')}>Afwijzen</button>
                           )}
                         </div>
                       </div>
@@ -1375,8 +1381,8 @@ function App() {
             <section className="card">
               <div className="card-header">
                 <div>
-                  <h2 className="card-title">Selected file</h2>
-                  <p className="card-subtitle">Detail view for the currently selected order.</p>
+                  <h2 className="card-title">Geselecteerd bestand</h2>
+                  <p className="card-subtitle">Detailweergave van de huidige opdracht.</p>
                 </div>
               </div>
               {fileDetail ? (
@@ -1387,21 +1393,21 @@ function App() {
                     <span className="pill">{fileDetail.credits} credits</span>
                   </div>
                   <div className="list-item">
-                    <div className="list-meta">{[fileDetail.brand, fileDetail.model, fileDetail.engine].filter(Boolean).join(' · ') || 'No vehicle data yet.'}</div>
-                    <div className="list-meta">Uploaded {formatDate(fileDetail.uploadedAt)}</div>
-                    <div className="list-meta">User {fileDetail.userEmail}</div>
+                    <div className="list-meta">{[fileDetail.brand, fileDetail.model, fileDetail.engine].filter(Boolean).join(' · ') || 'Nog geen voertuiggegevens.'}</div>
+                    <div className="list-meta">Geüpload {formatDate(fileDetail.uploadedAt)}</div>
+                    <div className="list-meta">Gebruiker {fileDetail.userEmail}</div>
                   </div>
                 </div>
               ) : (
-                <div className="empty-state">Select an order from Chat or Files.</div>
+                <div className="empty-state">Selecteer een opdracht via Chat of Bestanden.</div>
               )}
             </section>
 
             <section className="card">
               <div className="card-header">
                 <div>
-                  <h2 className="card-title">API coverage</h2>
-                  <p className="card-subtitle">The panel is wired to the routes already present in the backend.</p>
+                  <h2 className="card-title">API-dekking</h2>
+                  <p className="card-subtitle">Het paneel is gekoppeld aan de routes die al in de backend bestaan.</p>
                 </div>
               </div>
               <div className="pill-row">
