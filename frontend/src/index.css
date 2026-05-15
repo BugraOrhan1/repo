@@ -425,6 +425,10 @@ a {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.table tr.active-row td {
+  background: rgba(53, 194, 255, 0.08);
+}
+
 .list {
   display: grid;
   gap: 12px;
@@ -469,6 +473,115 @@ a {
 .status.in_progress { background: rgba(53, 194, 255, 0.14); color: #a9e7ff; }
 .status.completed { background: rgba(124, 219, 157, 0.14); color: #bff0cb; }
 .status.rejected { background: rgba(255, 125, 125, 0.14); color: #ffb5b5; }
+
+.order-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.order-chip {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  min-width: 160px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+}
+
+.order-chip.active {
+  border-color: rgba(53, 194, 255, 0.35);
+  background: rgba(53, 194, 255, 0.08);
+}
+
+.order-chip-title {
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-chip-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.order-chip-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 208, 96, 0.16);
+  color: #ffe4a3;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chat-message {
+  display: grid;
+  gap: 8px;
+  max-width: min(84%, 760px);
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.chat-message.user {
+  margin-right: auto;
+  background: rgba(53, 194, 255, 0.08);
+}
+
+.chat-message.admin {
+  margin-left: auto;
+  background: rgba(124, 219, 157, 0.08);
+}
+
+.chat-message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-message-name {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.chat-message-role,
+.chat-message-time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chat-message-body {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+@media (max-width: 700px) {
+  .order-chip {
+    min-width: 100%;
+  }
+
+  .chat-message {
+    max-width: 100%;
+  }
+}
 
 .empty-state {
   padding: 24px;

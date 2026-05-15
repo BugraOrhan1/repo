@@ -131,6 +131,21 @@ function App() {
 
   const unreadCount = notifications.filter((item) => !item.read).length;
 
+  const unreadByFileId = useMemo(() => {
+    return notifications.reduce((accumulator, item) => {
+      if (!item.read && item.fileId) {
+        accumulator[item.fileId] = (accumulator[item.fileId] || 0) + 1;
+      }
+      return accumulator;
+    }, {});
+  }, [notifications]);
+
+  const recentOrders = useMemo(() => {
+    return [...files]
+      .sort((left, right) => new Date(right.uploadedAt || 0) - new Date(left.uploadedAt || 0))
+      .slice(0, 6);
+  }, [files]);
+
   function apiUrl(path) {
     return `${API_BASE}${path}`;
   }
@@ -990,10 +1005,15 @@ function App() {
                     </thead>
                     <tbody>
                       {files.map((item) => (
-                        <tr key={item.id} onClick={() => setSelectedFileId(item.id)} style={{ cursor: 'pointer' }}>
+                        <tr key={item.id} onClick={() => setSelectedFileId(item.id)} style={{ cursor: 'pointer' }} className={classNames(selectedFileId === item.id && 'active-row')}>
                           <td>{item.fileName}</td>
                           <td>{[item.brand, item.model, item.engine].filter(Boolean).join(' · ') || item.vehicle || 'Unknown'}</td>
-                          <td><span className={classNames('status', item.status)}>{statusLabel(item.status)}</span></td>
+                          <td>
+                            <div className="pill-row">
+                              <span className={classNames('status', item.status)}>{statusLabel(item.status)}</span>
+                              {unreadByFileId[item.id] ? <span className="pill warn">{unreadByFileId[item.id]} new</span> : null}
+                            </div>
+                          </td>
                           <td>{formatDate(item.uploadedAt)}</td>
                         </tr>
                       ))}
@@ -1152,6 +1172,22 @@ function App() {
                   <p className="card-subtitle">Talk with the customer, download the uploaded file and upload the tuned version here.</p>
                 </div>
               </div>
+              {recentOrders.length ? (
+                <div className="order-switcher">
+                  {recentOrders.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={classNames('order-chip', selectedFileId === item.id && 'active')}
+                      onClick={() => setSelectedFileId(item.id)}
+                    >
+                      <span className="order-chip-title">{item.fileName}</span>
+                      <span className="order-chip-meta">{statusLabel(item.status)}</span>
+                      {unreadByFileId[item.id] ? <span className="order-chip-badge">{unreadByFileId[item.id]}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {fileDetail ? (
                 <div className="grid" style={{ gap: 12 }}>
                   <div className="pill-row">
@@ -1208,15 +1244,13 @@ function App() {
 
                   <div className="list">
                     {fileMessages.map((item) => (
-                      <div className="list-item" key={item.id}>
-                        <div className="list-top">
-                          <div>
-                            <h3 className="list-title">{item.senderName || 'System'}</h3>
-                            <div className="list-meta">{formatDate(item.createdAt)}</div>
-                          </div>
-                          <span className="pill">{item.senderRole}</span>
+                      <div className={classNames('chat-message', item.senderRole === 'admin' ? 'admin' : 'user')} key={item.id}>
+                        <div className="chat-message-meta">
+                          <span className="chat-message-name">{item.senderName || 'System'}</span>
+                          <span className="chat-message-role">{item.senderRole}</span>
+                          <span className="chat-message-time">{formatDate(item.createdAt)}</span>
                         </div>
-                        <p className="card-subtitle" style={{ marginBottom: 0 }}>{item.content}</p>
+                        <p className="chat-message-body">{item.content}</p>
                       </div>
                     ))}
                   </div>
