@@ -30,6 +30,7 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'fct-super-secret-key-change-in-produc
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRE_HOURS = 24 * 7
 ADMIN_EMAIL = 'admin@fast-chiptuningfiles.com'
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -1171,15 +1172,18 @@ async def options_tools():
     }
 
 
-# Seed admin user on startup
+# Seed admin user on startup (uses ADMIN_PASSWORD env var; do not hardcode credentials)
 @app.on_event("startup")
 async def seed_admin():
     existing = await db.users.find_one({'email': ADMIN_EMAIL})
     if not existing:
+        if not ADMIN_PASSWORD:
+            logging.warning(f"ADMIN_PASSWORD not set; skipping seeding admin user {ADMIN_EMAIL}")
+            return
         admin_user = {
             '_id': str(uuid.uuid4()),
             'email': ADMIN_EMAIL,
-            'password': hash_password('admin1234'),
+            'password': hash_password(ADMIN_PASSWORD),
             'firstName': 'Admin',
             'lastName': 'User',
             'company': 'Fast Chiptuningfiles',
@@ -1192,7 +1196,7 @@ async def seed_admin():
             'createdAt': now_iso(),
         }
         await db.users.insert_one(admin_user)
-        logging.info(f"Seeded admin user: {ADMIN_EMAIL} / admin1234")
+        logging.info(f"Seeded admin user: {ADMIN_EMAIL}")
 
 
 app.include_router(api_router)
@@ -1208,18 +1212,6 @@ async def api_version_root():
     return {'commit': commit, 'time': now_iso()}
 
 
-@api_router.get("/debug/plate")
-async def debug_plate(plate: str):
-    norm = normalize_plate(plate)
-    return {
-        'received': plate,
-        'received_len': len(plate or ''),
-        'normalized': norm,
-        'normalized_len': len(norm),
-        'chars': [ord(c) for c in (plate or '')],
-    }
-
-
 # Simple runtime version endpoint to help verify deployed code
 @api_router.get("/version")
 async def api_version():
@@ -1230,10 +1222,12 @@ async def api_version():
         commit = None
     return {'commit': commit, 'time': now_iso()}
 
+allowed = os.environ.get('ALLOWED_ORIGINS', 'https://tuningpaneel1.netlify.app,http://localhost:3000')
+allow_origins = [u.strip() for u in allowed.split(',') if u.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

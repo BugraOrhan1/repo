@@ -1218,17 +1218,6 @@ async def api_version_root():
     return {'commit': commit, 'time': now_iso()}
 
 
-@api_router.get("/debug/plate")
-async def debug_plate(plate: str):
-    norm = normalize_plate(plate)
-    return {
-        'received': plate,
-        'received_len': len(plate or ''),
-        'normalized': norm,
-        'normalized_len': len(norm),
-        'chars': [ord(c) for c in (plate or '')],
-    }
-
 
 # Simple runtime version endpoint to help verify deployed code
 @api_router.get("/version")
@@ -1240,10 +1229,12 @@ async def api_version():
         commit = None
     return {'commit': commit, 'time': now_iso()}
 
+allowed = os.environ.get('ALLOWED_ORIGINS', 'https://tuningpaneel1.netlify.app,http://localhost:3000')
+allow_origins = [u.strip() for u in allowed.split(',') if u.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
