@@ -100,6 +100,10 @@ class PurchaseIn(BaseModel):
     packageId: str
 
 
+class ApprovalIn(BaseModel):
+    status: str
+
+
 CREDIT_PACKAGES = {
     'pkg_5': {'credits': 5, 'price': 50},
     'pkg_10': {'credits': 10, 'price': 95},
@@ -261,6 +265,7 @@ def public_user(u: dict) -> dict:
         'vatNumber': u.get('vatNumber', ''),
         'credits': u.get('credits', 0),
         'is_admin': u.get('is_admin', False),
+        'approval_status': u.get('approval_status', 'pending'),
         'language': u.get('language', 'en'),
         'createdAt': u.get('createdAt', ''),
     }
@@ -681,6 +686,19 @@ async def admin_adjust_credits(user_id: str, data: CreditsAdjustIn, admin=Depend
     await add_notification(user_id, 'credits_changed',
                           f"Credits {'added' if data.amount > 0 else 'removed'}",
                           f"{data.amount:+d} credits by admin")
+    new_user = await db.users.find_one({'_id': user_id})
+    return public_user(new_user)
+
+
+@api_router.patch("/admin/users/{user_id}/approval")
+async def admin_set_approval(user_id: str, data: ApprovalIn, admin=Depends(require_admin)):
+    user = await db.users.find_one({'_id': user_id})
+    if not user:
+        raise HTTPException(status_code=404)
+    if data.status not in ('approved', 'rejected'):
+        raise HTTPException(status_code=400, detail='Invalid status')
+    await db.users.update_one({'_id': user_id}, {'$set': {'approval_status': data.status}})
+    await add_notification(user_id, 'account_' + data.status, 'Account ' + data.status.capitalize(), f"Your account was {data.status} by admin")
     new_user = await db.users.find_one({'_id': user_id})
     return public_user(new_user)
 

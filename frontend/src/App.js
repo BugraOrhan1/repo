@@ -1001,6 +1001,7 @@ function App() {
                         <th>Vehicle</th>
                         <th>Status</th>
                         <th>Uploaded</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1015,6 +1016,11 @@ function App() {
                             </div>
                           </td>
                           <td>{formatDate(item.uploadedAt)}</td>
+                          <td>
+                            <button type="button" className="pill" onClick={(event) => { event.stopPropagation(); setSelectedFileId(item.id); }}>
+                              Open
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
