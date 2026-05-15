@@ -267,10 +267,200 @@ def parse_year_from_date(value: str) -> Optional[int]:
     match = re.match(r'^(\d{4})', str(value))
     return int(match.group(1)) if match else None
 
-def best_text_match(candidates: List[str], target: str) -> Optional[str]:
+def brand_family_key(value: str) -> str:
+    normalized = normalize_text(value)
+    if 'volkswagen' in normalized or normalized == 'vw':
+        return 'volkswagen'
+    if 'mercedes' in normalized:
+        return 'mercedes'
+    if 'skoda' in normalized:
+        return 'skoda'
+    if 'seat' in normalized:
+        return 'seat'
+    if 'audi' in normalized:
+        return 'audi'
+    if 'mini' in normalized:
+        return 'mini'
+    if 'bmw' in normalized:
+        return 'bmw'
+    if 'opel' in normalized or 'vauxhall' in normalized:
+        return 'opel'
+    if 'renault' in normalized:
+        return 'renault'
+    return normalized
+
+
+def candidate_aliases_for_brand(brand: str, target_norm: str, fuel_text: str) -> List[str]:
+    family = brand_family_key(brand)
+    aliases: List[str] = []
+
+    if family == 'volkswagen':
+        if 'golf' in target_norm:
+            aliases.extend(['golfgte', 'golfgtd', 'golfgti', 'golfr', 'golf'])
+        elif 'passat' in target_norm:
+            aliases.extend(['passatgte', 'passat'])
+        elif 'polo' in target_norm:
+            aliases.extend(['pologti', 'polo'])
+        elif 'tiguan' in target_norm:
+            aliases.append('tiguan')
+        elif 'troc' in target_norm:
+            aliases.extend(['trocr', 'troc'])
+        else:
+            aliases.extend(['golf', 'polo', 'passat', 'tiguan', 'troc', 'arteon'])
+        if 'hybrid' in fuel_text or 'elektr' in fuel_text:
+            aliases[:0] = ['golfgte', 'passatgte']
+    elif family == 'audi':
+        if 'q3' in target_norm:
+            aliases.extend(['q3sportback', 'q3'])
+        elif 'q5' in target_norm:
+            aliases.append('q5')
+        elif 'q7' in target_norm:
+            aliases.append('q7')
+        elif 'a1' in target_norm:
+            aliases.append('a1')
+        elif 'a3' in target_norm:
+            aliases.extend(['rs3', 's3', 'a3'])
+        elif 'a4' in target_norm:
+            aliases.extend(['s4', 'a4'])
+        elif 'a5' in target_norm:
+            aliases.extend(['s5', 'a5'])
+        elif 'a6' in target_norm:
+            aliases.extend(['s6', 'a6'])
+        else:
+            aliases.extend(['a1', 'a3', 'a4', 'a5', 'a6', 'q3', 'q5', 'q7'])
+    elif family == 'seat':
+        if 'cupra' in target_norm:
+            aliases.extend(['leoncupra', 'ibizacupra', 'cupra', 'leon', 'ibiza'])
+        elif 'leon' in target_norm:
+            aliases.extend(['leoncupra', 'leon'])
+        elif 'ibiza' in target_norm:
+            aliases.append('ibiza')
+        else:
+            aliases.extend(['leon', 'ibiza', 'arona', 'ateca', 'tarraco'])
+    elif family == 'skoda':
+        if 'octavia' in target_norm:
+            aliases.extend(['octaviars', 'octavia'])
+        elif 'superb' in target_norm:
+            aliases.append('superb')
+        elif 'kodiaq' in target_norm:
+            aliases.append('kodiaq')
+        elif 'karoq' in target_norm:
+            aliases.append('karoq')
+        else:
+            aliases.extend(['fabia', 'octavia', 'superb', 'kodiaq', 'karoq'])
+    elif family == 'bmw':
+        if target_norm.startswith('x1'):
+            aliases.append('x1')
+        elif target_norm.startswith('x2'):
+            aliases.append('x2')
+        elif target_norm.startswith('x3'):
+            aliases.append('x3')
+        elif target_norm.startswith('x4'):
+            aliases.append('x4')
+        elif target_norm.startswith('x5'):
+            aliases.append('x5')
+        elif target_norm.startswith('x6'):
+            aliases.append('x6')
+        elif target_norm.startswith('x7'):
+            aliases.append('x7')
+        elif target_norm.startswith('m2'):
+            aliases.extend(['m2competition', 'm2'])
+        elif target_norm.startswith('m3'):
+            aliases.extend(['m3competition', 'm3', 'm340i'])
+        elif target_norm.startswith('m4'):
+            aliases.extend(['m4competition', 'm4'])
+        elif target_norm.startswith('m5'):
+            aliases.extend(['m5competition', 'm5', 'm550d'])
+        else:
+            match = re.match(r'^(\d)', target_norm)
+            if match:
+                aliases.append(f'{match.group(1)}series')
+            aliases.extend(['1series', '2series', '3series', '4series', '5series', '6series', '7series'])
+    elif family == 'mini':
+        if 'countryman' in target_norm:
+            aliases.extend(['countrymanjcw', 'countryman'])
+        elif 'jcw' in target_norm:
+            aliases.extend(['countrymanjcw', 'jcw'])
+        else:
+            aliases.extend(['coopers', 'cooper', 'countryman', 'jcw'])
+    elif family == 'mercedes':
+        if target_norm.startswith('a35'):
+            aliases.extend(['a35amg', 'aclass'])
+        elif target_norm.startswith('a45'):
+            aliases.extend(['a45amg', 'aclass'])
+        elif target_norm.startswith('c43'):
+            aliases.extend(['c43amg', 'cclass'])
+        elif target_norm.startswith('c63'):
+            aliases.extend(['c63amg', 'cclass'])
+        elif target_norm.startswith('e63'):
+            aliases.extend(['e63amg', 'eclass'])
+        elif target_norm.startswith('gla45'):
+            aliases.extend(['gla45amg', 'gla'])
+        elif target_norm.startswith('gla'):
+            aliases.append('gla')
+        elif target_norm.startswith('glc'):
+            aliases.append('glc')
+        elif target_norm.startswith('gle'):
+            aliases.append('gle')
+        elif target_norm.startswith('sprinter'):
+            aliases.append('sprinter')
+        elif target_norm.startswith('s'):
+            aliases.append('sclass')
+        elif target_norm.startswith('e'):
+            aliases.append('eclass')
+        elif target_norm.startswith('c'):
+            aliases.append('cclass')
+        elif target_norm.startswith('a'):
+            aliases.append('aclass')
+        else:
+            aliases.extend(['aclass', 'cclass', 'eclass', 'sclass', 'gla', 'glc', 'gle', 'sprinter'])
+    elif family == 'opel':
+        if 'opc' in target_norm:
+            aliases.extend(['astraopc', 'astra'])
+        elif 'corsa' in target_norm:
+            aliases.append('corsa')
+        elif 'astra' in target_norm:
+            aliases.append('astra')
+        elif 'insignia' in target_norm:
+            aliases.append('insignia')
+        elif 'mokka' in target_norm:
+            aliases.append('mokka')
+        elif 'grandland' in target_norm:
+            aliases.append('grandland')
+        elif 'vivaro' in target_norm:
+            aliases.append('vivaro')
+        else:
+            aliases.extend(['corsa', 'astra', 'insignia', 'mokka', 'grandland', 'vivaro'])
+    elif family == 'renault':
+        if 'rs' in target_norm:
+            aliases.extend(['meganers', 'cliors', 'megane', 'clio'])
+        elif 'clio' in target_norm:
+            aliases.append('clio')
+        elif 'megane' in target_norm:
+            aliases.append('megane')
+        elif 'captur' in target_norm:
+            aliases.append('captur')
+        elif 'kadjar' in target_norm:
+            aliases.append('kadjar')
+        elif 'trafic' in target_norm:
+            aliases.append('trafic')
+        elif 'master' in target_norm:
+            aliases.append('master')
+        else:
+            aliases.extend(['clio', 'megane', 'captur', 'kadjar', 'trafic', 'master'])
+
+    return aliases
+
+
+def best_text_match(candidates: List[str], target: str, brand: str = '', fuel_text: str = '') -> Optional[str]:
     target_norm = normalize_text(target)
     if not candidates or not target_norm:
         return candidates[0] if candidates else None
+    fuel_norm = (fuel_text or '').lower()
+    for alias in candidate_aliases_for_brand(brand, target_norm, fuel_norm):
+        match = next((item for item in candidates if alias in normalize_text(item)), None)
+        if match:
+            return match
     exact = [item for item in candidates if normalize_text(item) == target_norm]
     if exact:
         return exact[0]
