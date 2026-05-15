@@ -305,10 +305,10 @@ function App() {
 
     setPlateLookupLoading(true);
     try {
-      const result = await apiFetch(`/api/vehicles/lookup-license-plate?plate=${encodeURIComponent(vehicleForm.licensePlate)}`, { token });
+      const result = await apiFetch(`/api/vehicles/lookup-license-plate?plate=${encodeURIComponent(normalized)}`, { token });
       await applyPlateLookup(result);
     } catch (error) {
-      setPlateLookupMessage(error.message);
+      setPlateLookupMessage(error.message || 'Kenteken kon niet worden opgehaald. Vul merk/model handmatig in.');
     } finally {
       setPlateLookupLoading(false);
     }
@@ -338,19 +338,7 @@ function App() {
     setPlateLookupMessage(`Automatisch herkend: ${[result.brand, result.model, result.generation, result.engine].filter(Boolean).join(' · ')}`);
   }
 
-  useEffect(() => {
-    const normalized = normalizePlate(vehicleForm.licensePlate);
-    if (!token || normalized.length < 5) {
-      setPlateLookupMessage('');
-      return undefined;
-    }
-
-    const timeout = setTimeout(() => {
-      lookupLicensePlate();
-    }, 650);
-
-    return () => clearTimeout(timeout);
-  }, [token, vehicleForm.licensePlate]);
+  // Auto lookup removed: lookup only triggers on explicit button press
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -705,7 +693,7 @@ function App() {
             </div>
 
             {authMode === 'login' ? (
-              <form className="grid" onSubmit={handleLogin}>
+                <form className="grid" onSubmit={handleLogin}>
                 <div className="field">
                   <label>Email</label>
                   <input className="input" type="email" value={authForm.email} onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })} />
@@ -717,9 +705,7 @@ function App() {
                 <button className="button button-primary" type="submit" disabled={loading}>
                   {loading ? 'Signing in...' : 'Open panel'}
                 </button>
-                <p className="muted small" style={{ margin: 0 }}>
-                  Admin seed: admin@fast-chiptuningfiles.com / admin1234
-                </p>
+                {/* Admin seed removed from UI for security. */}
               </form>
             ) : (
               <form className="grid two" onSubmit={handleRegister}>
