@@ -112,6 +112,8 @@ function App() {
   const [uploadFile, setUploadFile] = useState(null);
   const [vehicleLabel, setVehicleLabel] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [plateLookupMessage, setPlateLookupMessage] = useState('');
+  const [plateLookupLoading, setPlateLookupLoading] = useState(false);
 
   const selectedTuning = useMemo(
     () => tuningOptions.find((item) => item.id === vehicleForm.tuningType),
@@ -289,6 +291,56 @@ function App() {
     const parts = [brand, model, generation, engine].filter(Boolean);
     setVehicleLabel(parts.length ? parts.join(' · ') : '');
   }, [vehicleForm]);
+
+  function normalizePlate(value) {
+    return String(value || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+  }
+
+  async function applyPlateLookup(result) {
+    if (!result?.found) {
+      setPlateLookupMessage('Geen automatische match gevonden. Handmatig selecteren blijft mogelijk.');
+      return;
+    }
+
+    setVehicleForm((current) => ({
+      ...current,
+      brand: result.brand || '',
+      model: result.model || '',
+      generation: result.generation || '',
+      engine: result.engine || '',
+      engineHp: result.engineHp ? String(result.engineHp) : current.engineHp,
+      engineKw: result.engineKw ? String(result.engineKw) : current.engineKw,
+      ecu: result.ecu || '',
+    }));
+
+    setModelOptions(result.models || []);
+    setGenerationOptions(result.generations || []);
+    setEngineOptions(result.engines || []);
+    setEcuOptions(result.ecus || []);
+    setPlateLookupMessage(`Automatisch herkend: ${[result.brand, result.model, result.generation, result.engine].filter(Boolean).join(' · ')}`);
+  }
+
+  useEffect(() => {
+    const normalized = normalizePlate(vehicleForm.licensePlate);
+    if (!token || normalized.length < 6) {
+      setPlateLookupMessage('');
+      return undefined;
+    }
+
+    const timeout = setTimeout(async () => {
+      setPlateLookupLoading(true);
+      try {
+        const result = await apiFetch(`/api/vehicles/lookup-license-plate?plate=${encodeURIComponent(vehicleForm.licensePlate)}`, { token });
+        await applyPlateLookup(result);
+      } catch (error) {
+        setPlateLookupMessage(error.message);
+      } finally {
+        setPlateLookupLoading(false);
+      }
+    }, 650);
+
+    return () => clearTimeout(timeout);
+  }, [token, vehicleForm.licensePlate]);
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -922,6 +974,16 @@ function App() {
                       <input className="input" type="file" onChange={(event) => setUploadFile(event.target.files?.[0] || null)} />
                     </div>
 
+                    <div className="field">
+                      <label>License plate</label>
+                      <input className="input" value={vehicleForm.licensePlate} onChange={(event) => setVehicleForm({ ...vehicleForm, licensePlate: event.target.value })} />
+                      <div className="muted small">Kenteken invullen vult merk, model en uitvoering automatisch in. Handmatig kiezen blijft mogelijk.</div>
+                      <div className="muted small">
+                        {plateLookupLoading ? ' Zoeken...' : ''}
+                        {plateLookupMessage ? ` ${plateLookupMessage}` : ''}
+                      </div>
+                    </div>
+
                     <div className="grid two">
                       <div className="field">
                         <label>Brand</label>
@@ -987,6 +1049,16 @@ function App() {
                     <div className="field">
                       <label>Original file</label>
                       <input className="input" type="file" onChange={(event) => setUploadFile(event.target.files?.[0] || null)} />
+                    </div>
+
+                    <div className="field">
+                      <label>License plate</label>
+                      <input className="input" value={vehicleForm.licensePlate} onChange={(event) => setVehicleForm({ ...vehicleForm, licensePlate: event.target.value })} />
+                      <div className="muted small">Kenteken invullen vult merk, model en uitvoering automatisch in. Handmatig kiezen blijft mogelijk.</div>
+                      <div className="muted small">
+                        {plateLookupLoading ? ' Zoeken...' : ''}
+                        {plateLookupMessage ? ` ${plateLookupMessage}` : ''}
+                      </div>
                     </div>
 
                     <div className="grid two">
